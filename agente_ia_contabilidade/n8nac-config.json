@@ -1,0 +1,30 @@
+{
+  "version": 2,
+  "activeInstanceId": "instance-332e0bb7",
+  "instances": [
+    {
+      "id": "instance-332e0bb7",
+      "name": "auto.mantovan.com.br · Alexandre Mantovan",
+      "host": "https://auto.mantovan.com.br",
+      "syncFolder": "workflows",
+      "projectId": "personal",
+      "projectName": "Personal",
+      "instanceIdentifier": "auto_mantovan_com_br_alexandre_m",
+      "workflowDir": "workflows/auto_mantovan_com_br_alexandre_m/personal",
+      "verification": {
+        "status": "verified",
+        "normalizedHost": "https://auto.mantovan.com.br",
+        "userId": "8b47127c-9eaa-4776-8ecd-83712fa86d83",
+        "userName": "Alexandre Mantovan",
+        "userEmail": "mantovanvp@gmail.com",
+        "lastCheckedAt": "2026-04-23T14:26:18.644Z"
+      }
+    }
+  ],
+  "host": "https://auto.mantovan.com.br",
+  "syncFolder": "workflows",
+  "projectId": "personal",
+  "projectName": "Personal",
+  "instanceIdentifier": "auto_mantovan_com_br_alexandre_m",
+  "workflowDir": "workflows/auto_mantovan_com_br_alexandre_m/personal"
+}

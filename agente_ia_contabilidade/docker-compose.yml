@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  avmd-contabil-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: avmd-contabil-app:latest
+    container_name: avmd-contabil-app
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL:-}
+      - SUPABASE_KEY=${SUPABASE_KEY:-}
+      - OPENROUTER_KEY=${OPENROUTER_KEY:-}
+    volumes:
+      - app_data:/app/data
+    networks:
+      - avmd-network
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/health-check.html"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  avmd-network:
+    driver: bridge
+
+volumes:
+  app_data:
+    driver: local

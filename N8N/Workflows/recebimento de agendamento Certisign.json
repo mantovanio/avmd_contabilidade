@@ -1,0 +1,1088 @@
+{
+  "name": "recebimento de agendamento Certisign",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "forceReconnect": 5
+        }
+      },
+      "id": "2c876ae0-38f1-408f-aa33-9d7ab3d9cae6",
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2,
+      "position": [
+        -1440,
+        -448
+      ],
+      "credentials": {
+        "imap": {
+          "id": "H9oQXH9GI4DQmMlM",
+          "name": "IMAP account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.subject }}",
+                    "rightValue": "Novo pedido",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    },
+                    "id": "90344cb6-b371-4914-acd4-4a9f91eb563c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Agendado"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d95e23c1-56fb-44a7-8a5e-12684df179c7",
+                    "leftValue": "={{ $json.subject }}",
+                    "rightValue": "Cancelamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "contains"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Cancelado"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b5b12217-eef6-4a0e-93c1-a7805a640126",
+      "name": "Switch",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -1184,
+        -448
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "contato@certifast.com.br",
+        "toEmail": "={{ $('Agendamento de Validação').item.json.email }}",
+        "subject": "Recebemos o seu agendamento para o certificado digital",
+        "html": "=<p>Prezado cliente, {{ $('Agendamento de Validação').item.json.nomeCliente }} tudo bem?</p>\n\n<p>Recebemos o seu agendamento para a validação do certificado digital! Abaixo estão os detalhes:</p>\n\n<ul>\n  <li><strong>Número do pedido:</strong> {{ $('Agendamento de Validação').item.json.pedido }}</li>\n  <li><strong>Produto adquirido:</strong> {{ $('Agendamento de Validação').item.json.produto }}</li>\n  <li><strong>Posto de atendimento:</strong> {{ $('Agendamento de Validação').item.json.posto }}</li>\n  <li><strong>Data:</strong> {{ $('Agendamento de Validação').item.json.data }}</li>\n  <li><strong>Horário:</strong> {{ $('Agendamento de Validação').item.json.hora }}</li>\n</ul>\n\n<p><strong>Atenção, por favor! ⚠️</strong></p>\n\n<ol>\n  <li><strong>Documentação necessária:</strong>\n    <ul>\n      <li>Seu documento pessoal (RG ou CNH).</li>\n      <li>Os documentos da empresa (se for o caso)</li>\n      <li>Enviar por e´mail ou por WhatsApp.</li>\n</li>\n    </ul>\n  </li>\n</ol>\n\n<p><strong>Dicas importantes:</strong></p>\n<ul>\n  <li>Os documentos devem estar coloridos, completos e sem cortes nas bordas.</li>\n  <li>Se possível, envie a versão digital do seu documento pessoal.</li>\n</ul>\n\n<p><strong>Link da reunião:</strong></p>\n<ul>\n  <li>No dia e horário agendados, você receberá um link por WhatsApp, mas se o numero não for compativel entregaremos o link por e-mail para a validação.</li>\n  <li>O link tem validade de 10 minutos. Caso não consiga acessá-lo a tempo, entre em contato conosco.</li>\n</ul>\n\n<p>Se tiver qualquer dúvida, estou à disposição para ajudar e caso precise reagendar, nos comunique pelo nosso whatsapp 1132800484!</p>\n\n<p>Agradecemos pela confiança e estamos à disposição para garantir que tudo corra bem!</p>\n\n<p>Se precisar entrar em contato, envie uma mensagem para <strong>11 32800484 (WhatsApp)</strong></p>\n\n<p>Equipe Certifast</p>",
+        "options": {}
+      },
+      "id": "6a94d3b2-08e8-4607-9148-0788d27c5f8b",
+      "webhookId": "a69b25ac-4bc8-407c-a997-461d8742961f",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1056,
+        -1072
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "6e47pVwT4AGiQadz",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mantovan.com.br/message/sendText/atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Edit Fields').item.json.telefone }}\",\n  \"text\": \"Prezado, {{ $('Agendamento de Validação').item.json.primeiroNome }}! Tudo bem? \\\\n\\\\nRecebemos o seu agendamento para a validação do certificado digital.\\\\n\\\\n📋 *Detalhes do Agendamento:*\\\\n- Nome: {{ $('Agendamento de Validação').item.json.nomeCliente }}\\\\n- Pedido: {{ $('Agendamento de Validação').item.json.pedido }}\\\\n- Produto: {{ $('Agendamento de Validação').item.json.produto }}\\\\n- Posto: {{ $('Agendamento de Validação').item.json.posto }}\\\\n- Data: {{ $('Agendamento de Validação').item.json.data }}\\\\n- Horário: {{ $('Agendamento de Validação').item.json.hora }}\"\n}",
+        "options": {}
+      },
+      "id": "14f58eb0-6c9b-4437-a561-97f7ea21cedd",
+      "name": "Evolution 2.1.0 - envia mensagem cliente",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1232,
+        -464
+      ],
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const email = $input.item.json;\nconst corpoBruto = email.textHtml || email.textPlain || email.text || email.corpo || email.message || '';\nconst assunto = email.subject || '';\n\nif (!corpoBruto && !assunto) {\n  throw new Error('E-mail sem assunto e sem corpo para extracao.');\n}\n\nconst htmlToText = (input) =>\n  String(input || '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/gi, ' ')\n    .replace(/&agrave;/gi, 'as')\n    .replace(/&aacute;/gi, 'a')\n    .replace(/&atilde;/gi, 'a')\n    .replace(/&ccedil;/gi, 'c')\n    .replace(/\\s+/g, ' ')\n    .trim();\n\nconst textoCorpo = htmlToText(corpoBruto);\n\nconst extract = (regex) => {\n  const match = textoCorpo.match(regex);\n  return match ? match[1].trim() : null;\n};\n\nconst pedido =\n  (assunto.match(/cancelamento\\s+de\\s+valida(?:c|ç)[aã]o.*?pedido\\s*(\\d{5,})/i) || [])[1] ||\n  (assunto.match(/pedido\\s*(\\d{5,})/i) || [])[1] ||\n  extract(/Pedido:\\s*(\\d{5,})/i);\n\nconst data =\n  extract(/agendada\\s+para\\s+o\\s+dia\\s*(\\d{2}\\/\\d{2}\\/\\d{4})/i) ||\n  extract(/Data:\\s*(\\d{2}\\/\\d{2}\\/\\d{4})/i);\n\nconst hora =\n  extract(/(?:as|às)\\s*(\\d{2}:\\d{2})h?/i) ||\n  extract(/Hora:\\s*(\\d{2}:\\d{2})/i);\n\nconst cliente = extract(/Cliente:\\s*([\\s\\S]*?)(?=\\s*(CPF\\/CNPJ:|Telefone:|Email:|Pedido:|Produto:|Data:|Hora:|$))/i);\nconst telefoneBruto = extract(/Telefone:\\s*([\\d()\\-\\s]+)/i);\nconst emailCliente = extract(/Email:\\s*([^\\s]+@[^\\s]+\\.[^\\s]+)/i);\nconst produto = extract(/Produto:\\s*([\\s\\S]*?)(?=\\s*(Telefone:|Email:|Data:|Hora:|$))/i);\n\nconst telefoneNumeros = (telefoneBruto || '').replace(/\\D/g, '');\nconst telefone = telefoneNumeros\n  ? telefoneNumeros.startsWith('55')\n    ? telefoneNumeros\n    : `55${telefoneNumeros}`\n  : null;\n\nif (!pedido) {\n  throw new Error('Nao foi possivel identificar o numero do pedido no e-mail de cancelamento.');\n}\n\nreturn [\n  {\n    json: {\n      cliente,\n      telefone,\n      pedido,\n      email: emailCliente,\n      produto,\n      data,\n      hora,\n    },\n  },\n];"
+      },
+      "id": "d5179578-93c4-4736-874a-987be242179f",
+      "name": "Cancelamento de Validação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Função para remover tags HTML e limpar espaços\nfunction stripHtml(html) {\n  return html.replace(/<[^>]*>/g, ' ')\n             .replace(/&nbsp;/g, ' ')\n             .replace(/\\s+/g, ' ')\n             .trim();\n}\n\n// Função para extrair valor entre chave e próxima chave\nfunction extractBetween(text, key, nextKey) {\n  const start = text.indexOf(key);\n  if (start === -1) return '';\n  const valueStart = start + key.length;\n  let valueEnd = text.length;\n\n  if (nextKey) {\n    const nextStart = text.indexOf(nextKey, valueStart);\n    if (nextStart !== -1) {\n      valueEnd = nextStart;\n    }\n  }\n\n  return text.substring(valueStart, valueEnd).trim();\n}\n\n// Função para normalizar telefone para WhatsApp\nfunction normalizarTelefone(telefone) {\n  const numeros = telefone.replace(/\\D/g, '');\n  return numeros.length === 11 ? `55${numeros}` : numeros;\n}\n\n// Função para extrair primeiro nome\nfunction primeiroNome(nome) {\n  return nome.split(' ')[0];\n}\n\n// Função para limpar assunto\nfunction limparAssunto(texto) {\n  return texto.replace(/\\s+/g, ' ').trim();\n}\n\n// Captura e limpeza do corpo do e-mail\nconst rawHtml = items[0].json.textPlain || items[0].json.textHtml || '';\nconst emailBody = stripHtml(rawHtml);\nconst assunto = limparAssunto(items[0].json.subject || '');\n\n// Extração precisa entre chaves\nconst cliente = extractBetween(emailBody, 'Cliente:', 'CPF/CNPJ:');\nconst cpfCnpj = extractBetween(emailBody, 'CPF/CNPJ:', 'Telefone:');\nconst telefoneRaw = extractBetween(emailBody, 'Telefone:', 'Telefone Celular:');\nconst email = extractBetween(emailBody, 'Email:', 'Pedido:');\nconst pedidoMatch = emailBody.match(/Pedido:\\s*(\\d{6,})/);\nconst pedido = pedidoMatch ? pedidoMatch[1] : '';\nconst produto = extractBetween(emailBody, 'Produto:', 'Posto:');\nconst posto = extractBetween(emailBody, 'Posto:', 'Data:');\nconst data = extractBetween(emailBody, 'Data:', 'Hora:');\nconst hora = extractBetween(emailBody, 'Hora:', null);\n\n// Lógica condicional para CPF ou CNPJ\nlet cpf = '';\nlet cnpj = '';\nif (produto.toLowerCase().includes('e-cpf')) {\n  cpf = cpfCnpj;\n} else if (produto.toLowerCase().includes('e-cnpj')) {\n  cnpj = cpfCnpj;\n}\n\n// Monta o objeto final\nconst output = {\n  assunto,\n  nomeCliente: cliente,\n  primeiroNome: primeiroNome(cliente),\n  cpf,\n  cnpj,\n  telefone: normalizarTelefone(telefoneRaw),\n  email,\n  pedido,\n  produto,\n  posto,\n  data,\n  hora\n};\n\nreturn [{ json: output }];\n"
+      },
+      "id": "0304a8b8-89a6-4568-b6eb-9045722009dc",
+      "name": "Agendamento de Validação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        -560
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "bf152f78-5755-404c-81aa-5dd4ec6ea2b8",
+      "webhookId": "fbf353aa-fae9-4fd6-84b5-8d3c16220366",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1440,
+        -464
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mantovan.com.br/message/sendText/atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"{{ $('Agendamento de Validação').item.json.telefone }}\",\n  \"text\": \"*Atenção!*\\n\\n1. *Documentação necessária:*\\n   - Documento pessoal (RG ou CNH).\\n   - Documentos da empresa (se for o caso).\\n\\n💡 *Dicas importantes:*\\n   - Os documentos devem estar *coloridos, completos e sem cortes*.\\n   - Se possível, envie a versão *digital* dos documentos.\\n\\n🔗 *Link da reunião:*\\n   - No dia e horário agendados, você receberá um link por WhatsApp.\\n   - O link terá *validade de 10 minutos*. Caso não consiga acessá-lo a tempo, entre em contato conosco.\\n\\n *Precisa de ajuda?*\\n   - Estamos à disposição para esclarecer qualquer dúvida e caso precise reagendar envie aqui a sua mensagem que faremso o seu reagendamento! \\n\\nAgradecemos pela confiança em nossos serviços!\\n\\nEquipe Certifast\"\n}",
+        "options": {}
+      },
+      "id": "19cdba74-94ac-4d0e-aa50-cc8a9ee089cb",
+      "name": "Evolution 2.1.0 - envia mensagem cliente2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1632,
+        -464
+      ],
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "2c4cf5d9-8e03-4327-975a-11179f6dd856",
+      "webhookId": "fbf353aa-fae9-4fd6-84b5-8d3c16220366",
+      "name": "Wait1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        -464
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $json.data }} {{ $json.hora }} pedido {{ $json.pedido }} {{ $json.nomeCliente  }} {{ $json.telefone }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "12a5jVGsdJjFzMk41dEs6NJbc1CVuTjGi",
+          "mode": "list",
+          "cachedResultName": "PEDIDOS",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/12a5jVGsdJjFzMk41dEs6NJbc1CVuTjGi"
+        },
+        "options": {}
+      },
+      "id": "b327c820-aaa2-4d59-a129-5f884d4f49bc",
+      "name": "Cria pasta",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        -384
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HtuAlJ584rZcRKop",
+          "name": "Google Drive | Cliente AVMD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "eb75619d-233f-4ac3-bc3b-6377d110dc62",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "={{ $json.name }}",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "id": "838fb975-83a4-494a-925b-44fd22f82b30",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        16,
+        -176
+      ],
+      "executeOnce": false,
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mantovan.com.br/message/sendText/atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5511983500019\",\n  \"text\": \"🚨 **NOVO AGENDAMENTO!** \\n\\nDetalhes do Agendamento:\\n- *Cliente:* {{ $('Agendamento de Validação').item.json.nomeCliente }}\\n- *CPF/CNPJ:* {{ $('Agendamento de Validação').item.json.cnpj }}{{ $('Agendamento de Validação').item.json.cpf }}\\n- *Telefone:* {{ $('Agendamento de Validação').item.json.telefone }} \\n- *E-mail:*{{ $('Agendamento de Validação').item.json.email }}\\n- *Pedido:* {{ $('Agendamento de Validação').item.json.pedido }}\\n- *Produto:* {{ $('Agendamento de Validação').item.json.produto }}\\n- *Posto:* {{ $('Agendamento de Validação').item.json.posto }}\\n- *Data:* {{ $('Agendamento de Validação').item.json.data }}\\n- *Horário:* {{ $('Agendamento de Validação').item.json.hora }}\" \n}",
+        "options": {}
+      },
+      "id": "cada6a6e-1345-4455-bc29-3d0dc23c4675",
+      "name": "Evolution 2.1.0 - envia mensagem Equipe2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1056,
+        -672
+      ],
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mantovan.com.br/message/sendText/atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5511990002583\",\n  \"text\": \"🚨 *VALIDAÇÃO CANCELADA* 🚨\\n\\n*Cliente:* {{ $('Normalza1').item.json.Cliente }}\\n\\n*Pedido:* {{ $('Normalza1').item.json.Pedido }}\\n*Produto:* {{ $('Normalza1').item.json.Produto }}\\n*Data:* {{ $('Normalza1').item.json.Data }}\"}",
+        "options": {}
+      },
+      "id": "02fbe7a6-cd3d-4413-baa4-ac28f1865133",
+      "name": "avisa ingrid",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        32,
+        48
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mantovan.com.br/message/sendText/atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5511983500019\",\n  \"text\": \"🚨 *VALIDAÇÃO CANCELADA* 🚨\\n\\n*Cliente:* {{ $('Normalza1').item.json.Cliente }}\\n\\n*Pedido:* {{ $('Normalza1').item.json.Pedido }}\\nProduto:{{ $('Normalza1').item.json.Produto }}\\n*Data:*{{ $('Normalza1').item.json.Data }}\"}",
+        "options": {}
+      },
+      "id": "fc99c11b-ab30-4b87-aa38-6d32243773e7",
+      "name": "avisa ingrid1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        304,
+        48
+      ],
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fb066a81-d78d-4416-a94f-244bfe5c5d84",
+              "name": "Cliente",
+              "value": "={{ $json.cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "6ba9d249-f0c1-427d-a2fd-d350c6677b15",
+              "name": "Primeiro Nome",
+              "value": "={{ $json.cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "f688fbaa-42d9-4409-9cbd-d6abb23fc44d",
+              "name": "Telefone",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "7399f3be-f126-461d-8b0d-d473dd8d3708",
+              "name": "e-mail",
+              "value": "={{ $json.email }}",
+              "type": "string"
+            },
+            {
+              "id": "c070b96a-29a7-448a-8518-c0271cb88b13",
+              "name": "Pedido",
+              "value": "={{ $json.pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "f1f2e2ec-c631-412a-bedf-1e87c5ce431d",
+              "name": "Produto",
+              "value": "={{ $json.produto }}",
+              "type": "string"
+            },
+            {
+              "id": "57a85268-b1ca-4856-a4ed-ecb6daf6e6db",
+              "name": "Data",
+              "value": "={{ $json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "afd6a128-da44-4b58-8314-c5d736ed1092",
+              "name": "chavePedido",
+              "value": "=Pedido {{ $json.pedido }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "26dc0204-0b72-4517-9d74-31e265853ec1",
+      "name": "Normalza1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        -176
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d9826744-be16-4fd2-abd5-5bbf076d0578",
+              "name": "folderIdFinal",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "485c6042-7055-4192-a57f-4ff04fda4bc2",
+              "name": "nome da pasta",
+              "value": "={{ $json.name }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3bb15137-c6bb-44e2-91f6-4d1155f18e5f",
+      "name": "Edit Fields1",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        592,
+        -192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b54275d5-e836-4c4e-9f2e-b5a0ee6a59d4",
+              "name": "folderIdFinal",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "3a52754b-3659-41fe-bccd-34e9502761aa",
+      "name": "folderIdFinal",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        512,
+        -384
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "12a5jVGsdJjFzMk41dEs6NJbc1CVuTjGi",
+          "mode": "list",
+          "cachedResultName": "PEDIDOS",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/12a5jVGsdJjFzMk41dEs6NJbc1CVuTjGi"
+        }
+      },
+      "id": "a5bc2040-f147-4513-b4c6-285737493f0f",
+      "name": "Move file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        64,
+        -624
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HtuAlJ584rZcRKop",
+          "name": "Google Drive | Cliente AVMD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "move",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1BsclfGTt6w6-wsYoSgrYkkhBDYPz-iEw",
+          "mode": "list",
+          "cachedResultName": "Z CANCELADOS",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1BsclfGTt6w6-wsYoSgrYkkhBDYPz-iEw"
+        }
+      },
+      "id": "e18d9dc6-e8ad-4656-a623-4f5db8544ed5",
+      "name": "Movi para Z CANCELADOS",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        320,
+        -192
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HtuAlJ584rZcRKop",
+          "name": "Google Drive | Cliente AVMD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains '{{ $json.pedido }}' and trashed = false",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "id": "72c6e1bc-63f0-4545-aa1e-527b462d5fde",
+      "name": "Busca Pasta",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -496,
+        -560
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HtuAlJ584rZcRKop",
+          "name": "Google Drive | Cliente AVMD"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "newUpdatedFileName": "={{ $('Agendamento de Validação').item.json.data }} {{ $('Agendamento de Validação').item.json.hora }} Pedido {{ $('Agendamento de Validação').item.json.pedido }} {{ $('Agendamento de Validação').item.json.nomeCliente }} {{ $('Agendamento de Validação').item.json.telefone }}",
+        "options": {}
+      },
+      "id": "d3a12fc6-27fd-4288-bf57-fb728b532ef6",
+      "name": "Update file",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        336,
+        -624
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HtuAlJ584rZcRKop",
+          "name": "Google Drive | Cliente AVMD"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.id }}",
+                    "rightValue": "Novo pedido",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "90344cb6-b371-4914-acd4-4a9f91eb563c"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Nã_Criar_Pasta"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "d95e23c1-56fb-44a7-8a5e-12684df179c7",
+                    "leftValue": "={{ $json.id }}",
+                    "rightValue": "Cancelamento",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notExists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Criar"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2bf2bb1a-408b-4131-99c6-aa2476f834b7",
+      "name": "Switch1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -288,
+        -560
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=name contains '{{ $json.pedido }}' and trashed = false",
+        "limit": 1,
+        "filter": {},
+        "options": {}
+      },
+      "id": "9c623c0d-406b-4274-8adf-c010f9030600",
+      "name": "Busca Pasta1",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        -256,
+        -176
+      ],
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "HtuAlJ584rZcRKop",
+          "name": "Google Drive | Cliente AVMD"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "id": "df868902-17f7-40d1-a85a-cecefe082bc8",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        704,
+        -576
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.mantovan.com.br/message/sendText/atendimento",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.EVOLUTION_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"number\": \"5511990002583\",\n  \"text\": \"🚨 **NOVO AGENDAMENTO!** \\n\\nDetalhes do Agendamento:\\n- *Cliente:* {{ $('Agendamento de Validação').item.json.nomeCliente }}\\n- *CPF/CNPJ:* {{ $('Agendamento de Validação').item.json.cnpj }}{{ $('Agendamento de Validação').item.json.cpf }}\\n- *Telefone:* {{ $('Agendamento de Validação').item.json.telefone }} \\n- *E-mail:*{{ $('Agendamento de Validação').item.json.email }}\\n- *Pedido:* {{ $('Agendamento de Validação').item.json.pedido }}\\n- *Produto:* {{ $('Agendamento de Validação').item.json.produto }}\\n- *Posto:* {{ $('Agendamento de Validação').item.json.posto }}\\n- *Data:* {{ $('Agendamento de Validação').item.json.data }}\\n- *Horário:* {{ $('Agendamento de Validação').item.json.hora }}\" \n}",
+        "options": {}
+      },
+      "id": "f0af4fa8-7678-4821-9d67-d0aaaacf89e9",
+      "name": "Evolution 2.1.0 - envia mensagem Equipe",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1056,
+        -848
+      ],
+      "alwaysOutputData": false,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1c7bbdd6-49b6-4811-8be0-7fc047491e5b",
+              "name": "data",
+              "value": "={{ $('Agendamento de Validação').item.json.data }}",
+              "type": "string"
+            },
+            {
+              "id": "ea1dd874-260c-47fe-9bc5-89d3574b5837",
+              "name": "hora",
+              "value": "={{ $('Agendamento de Validação').item.json.hora }}",
+              "type": "string"
+            },
+            {
+              "id": "e97a86b6-efa7-4e21-b180-56cd9234c5cb",
+              "name": "pedido",
+              "value": "={{ $('Agendamento de Validação').item.json.pedido }}",
+              "type": "string"
+            },
+            {
+              "id": "545c7346-1e3c-4e9e-93f6-eee344a2c43e",
+              "name": "nomeCliente",
+              "value": "={{ $('Agendamento de Validação').item.json.nomeCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "41f37e1a-8d27-4938-be01-4d7c2d97929b",
+              "name": "telefone",
+              "value": "={{ $('Agendamento de Validação').item.json.telefone }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c98557e7-774b-42ac-9d45-d739066b011a",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        -480
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Agendamento de Validação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Cancelamento de Validação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evolution 2.1.0 - envia mensagem cliente": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cancelamento de Validação": {
+      "main": [
+        [
+          {
+            "node": "Normalza1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agendamento de Validação": {
+      "main": [
+        [
+          {
+            "node": "Busca Pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Evolution 2.1.0 - envia mensagem cliente2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Evolution 2.1.0 - envia mensagem cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Movi para Z CANCELADOS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "avisa ingrid": {
+      "main": [
+        [
+          {
+            "node": "avisa ingrid1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalza1": {
+      "main": [
+        [
+          {
+            "node": "Busca Pasta1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cria pasta": {
+      "main": [
+        [
+          {
+            "node": "folderIdFinal",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move file": {
+      "main": [
+        [
+          {
+            "node": "Update file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Movi para Z CANCELADOS": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Pasta": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update file": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Move file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Busca Pasta1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "avisa ingrid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "folderIdFinal": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Evolution 2.1.0 - envia mensagem Equipe2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Evolution 2.1.0 - envia mensagem Equipe",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Cria pasta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "njgLDMiZUfzbxoI1",
+    "timeSavedMode": "fixed",
+    "availableInMCP": false
+  },
+  "versionId": "f572e1dd-4fcd-477d-8ceb-3703d54755f0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c7c80362368f5797d33ff9abfd48f4da88cc2118b57c4bbe52975d23ba68e85"
+  },
+  "id": "jZ0Hxf6RZRuzoABm",
+  "tags": []
+}

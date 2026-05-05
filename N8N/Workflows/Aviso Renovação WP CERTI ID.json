@@ -1,0 +1,740 @@
+{
+  "name": "Aviso Renovação WP CERTI ID",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -240,
+        -432
+      ],
+      "id": "dad97cf5-0e6b-4213-8c62-c87a39788d51",
+      "name": "Loop Over Items1"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        1376,
+        -704
+      ],
+      "id": "8a424dc8-7846-41f9-b967-afc6161490f3",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ Number($json.DiasParaVencimento) }}",
+                    "rightValue": "=1",
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    },
+                    "id": "7ef93cb6-1b4a-4fd1-85e6-9eb1aa4d401e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Amanhã"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1cf38cb2-bba3-4122-92b3-dcab08898bf7",
+                    "leftValue": "={{ Number($json.DiasParaVencimento) }}",
+                    "rightValue": "=5",
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "=5 dias"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2b64a1bb-bd4c-4338-8e1c-7df59fce4434",
+                    "leftValue": "={{ Number($json.DiasParaVencimento) }}",
+                    "rightValue": "=10",
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "10 dias"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4326b020-1d5e-4cd9-83e6-73b77f8c8e69",
+                    "leftValue": "={{ Number($json.DiasParaVencimento) }}",
+                    "rightValue": "=20",
+                    "operator": {
+                      "type": "number",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "20 dias"
+            }
+          ]
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        -704
+      ],
+      "id": "b971e276-6d12-45b7-b8d8-2dfe36576d12",
+      "name": "Separador de datas1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        -672
+      ],
+      "id": "65f6f814-45bd-4eea-8cef-1dec24b37b62",
+      "name": "Disparo Automático1"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        32,
+        -416
+      ],
+      "id": "8c882c83-7b78-4bbd-b622-1ea95cf13dac",
+      "name": "Wait",
+      "webhookId": "8e901ba8-7dc0-4367-8536-c5cafc5367e5"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "1ueUOYmByA4JTNy7rYWbYWU89oqJkpETOtJKTWFcwkXs",
+          "mode": "list",
+          "cachedResultName": "Renovação CertiID disparoWP",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ueUOYmByA4JTNy7rYWbYWU89oqJkpETOtJKTWFcwkXs/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 626806006,
+          "mode": "list",
+          "cachedResultName": "relatorio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ueUOYmByA4JTNy7rYWbYWU89oqJkpETOtJKTWFcwkXs/edit#gid=626806006"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        32,
+        -672
+      ],
+      "id": "567d08d3-7389-4ff7-8716-04311b09936a",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleApi": {
+          "id": "zHV2P8lA5y4JLuEt",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const saida = $input.all().map(item => {\n  const original = { ...item.json };\n\n  // --- 1. FUNÇÃO: NORMALIZAR DATAS (IGNORA HORA E CONVERTE PARA ISO) ---\n  function toISO(dateAny) {\n    if (!dateAny) return '';\n    // Pega apenas a parte da data antes do espaço (remove HH:mm:ss)\n    let s = String(dateAny).trim().split(' ')[0]; \n    \n    // Caso DD/MM/YYYY\n    if (s.includes('/')) {\n      const partes = s.split('/');\n      if (partes.length === 3) {\n        // Retorna YYYY-MM-DD\n        return `${partes[2]}-${partes[1]}-${partes[0]}`;\n      }\n    }\n    // Caso YYYY-MM-DD (já é ISO)\n    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) {\n      return s;\n    }\n    return '';\n  }\n\n  // --- 2. FUNÇÃO: NORMALIZAR TELEFONE (PADRÃO WHATSAPP 55) ---\n  function normalizarTelefone(tel) {\n    if (!tel) return '';\n    let digits = String(tel).replace(/\\D/g, '');\n    // Se tiver 10 ou 11 dígitos (DDD + Número), adiciona o 55\n    if (digits.length === 10 || digits.length === 11) {\n      return '55' + digits;\n    }\n    // Se já tiver 12 ou mais e começar com 55, mantém\n    if (digits.length >= 12 && digits.startsWith('55')) {\n      return digits;\n    }\n    return '';\n  }\n\n  // --- 3. CONSOLIDAÇÃO DO DOCUMENTO (SEM DUPLICIDADE) ---\n  const valorDoc = original[\"Documento registrado\"] || \n                   original[\"documento registrado\"] || \n                   original[\"Documento Registrado\"] || \n                   original.documento || \n                   original.Documento || '';\n\n  let docLimpo = String(valorDoc).replace(/\\D/g, '');\n  if (docLimpo.length > 14) docLimpo = '';\n\n  // Deleta as variações para limpar a visualização na Mesa (JSON)\n  delete original[\"Documento registrado\"];\n  delete original[\"documento registrado\"];\n  delete original.documento;\n  delete original.Documento;\n\n  // --- 4. CÁLCULO DE DIAS RESTANTES (RETORNA NÚMERO INTEIRO) ---\n  const dataVenc = toISO(original[\"Data de Vencimento\"] || original.Expiração || original.Vencimento);\n  let diasRestantes = null;\n  \n  if (dataVenc) {\n    try {\n      // Ajuste para 00:00:00 para garantir cálculo de dias exatos\n      const d1 = new Date(dataVenc + 'T00:00:00'); \n      const d2 = new Date();\n      d2.setHours(0, 0, 0, 0);\n      \n      const diff = d1.getTime() - d2.getTime();\n      // Retorna número inteiro (ex: 1, 5, 10, -58)\n      diasRestantes = Math.round(diff / (1000 * 60 * 60 * 24));\n    } catch (e) {\n      diasRestantes = null;\n    }\n  }\n\n  // --- 5. RESULTADO FINAL ---\n  return {\n    json: {\n      ...original,\n      \"Documento Registrado\": docLimpo,\n      \"Telefone\": normalizarTelefone(original.Telefone),\n      \"VencimentoISO\": dataVenc,\n      \"DiasParaVencimento\": diasRestantes, // Sai como Number\n      \"UltimoProcessamento\": new Date().toISOString()\n    }\n  };\n});\n\n// Filtra apenas quem tem telefone válido e ignora quem já venceu (negativos)\nreturn saida.filter(item => {\n  const temTelefone = item.json.Telefone && item.json.Telefone.length >= 12;\n  const naoVencido = item.json.DiasParaVencimento !== null && item.json.DiasParaVencimento >= 0;\n  return temTelefone && naoVencido;\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -672
+      ],
+      "id": "6637db96-cf26-4ce1-bc8f-677cf5a2cdc7",
+      "name": "Converter Formato"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e555ac86-06db-4c33-b60c-1deab26e5c15",
+              "name": "row_number",
+              "value": "={{ $json.row_number }}",
+              "type": "number"
+            },
+            {
+              "id": "63d9b2a0-6f22-498c-94db-b43d95180920",
+              "name": "Expiração",
+              "value": "={{ $json['Expiração'] }}",
+              "type": "string"
+            },
+            {
+              "id": "9519a650-bd46-4040-88d6-c563de9315dd",
+              "name": "Protocolo",
+              "value": "={{ $json['Pedido/Ticket'] }}",
+              "type": "number"
+            },
+            {
+              "id": "77ab1586-02e0-479a-a9ad-802872e0fe4c",
+              "name": "Certificado",
+              "value": "={{ $json.Certificado }}",
+              "type": "string"
+            },
+            {
+              "id": "0d165409-976c-42c2-ada5-46c5e0b176cf",
+              "name": "Documento Registrado",
+              "value": "={{ $json.Documento }}",
+              "type": "string"
+            },
+            {
+              "id": "1158bce3-34ac-4536-a853-2dadc4f02c4b",
+              "name": "Nome/Razão Social",
+              "value": "={{ $json['Nome/Razão Social'] }}",
+              "type": "string"
+            },
+            {
+              "id": "bda56649-4eb7-427e-a479-1719aeb5cd19",
+              "name": "Telefone",
+              "value": "={{ $json.Telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "5cd364a5-d712-4426-be8d-1f80cca42511",
+              "name": "E-mail",
+              "value": "={{ $json['E-mail'] }}",
+              "type": "string"
+            },
+            {
+              "id": "6e4104a1-559b-40d5-a6c3-01ddb491190d",
+              "name": "Emissão",
+              "value": "={{ $json['Emissão'] }}",
+              "type": "string"
+            },
+            {
+              "id": "d298b3e7-ab39-47d2-8dda-528334e3a380",
+              "name": "Parceiro",
+              "value": "={{ $json.Parceiro }}",
+              "type": "string"
+            },
+            {
+              "id": "ef5bffc3-d03f-4152-93b3-bebc240ad7a5",
+              "name": "Vendedor",
+              "value": "={{ $json['Vendedor/Indicação'] }}",
+              "type": "string"
+            },
+            {
+              "id": "70fed930-7e5d-4b91-a7ec-7a2ed1753a08",
+              "name": "Nome Agente",
+              "value": "={{ $json['Nome Agente'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        256,
+        -672
+      ],
+      "id": "51484bbf-a6e1-45a3-b6b7-ee3e81157651",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "6xNdxwWqNpOIozrm",
+          "mode": "list",
+          "cachedResultName": "Tabelas_de_vendas",
+          "cachedResultUrl": "/projects/nzSTjCiRVBxzTpeN/datatables/6xNdxwWqNpOIozrm"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2480,
+        -704
+      ],
+      "id": "27dfe94a-c8e2-43b1-b830-ec5f4ead76ab",
+      "name": "Get row(s)",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2f7ed417-4ac7-4fda-8c59-75c9c6e956a4",
+              "name": "Pedido",
+              "value": "={{ $json.Protocolo }}",
+              "type": "string"
+            },
+            {
+              "id": "4a6ebb18-4090-4065-ae14-edd481dae3fa",
+              "name": "Telefone",
+              "value": "={{ $json.Telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "08501680-136a-4279-a0c9-4ccba54ea3aa",
+              "name": "Cliente",
+              "value": "={{ $json['Nome/Razão Social'] }}",
+              "type": "string"
+            },
+            {
+              "id": "d8dd4378-4ca3-4d8f-8b18-a5532604228a",
+              "name": "whatsappMessage",
+              "value": "={{ $json.whatsappMessage }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        560,
+        -416
+      ],
+      "id": "883ad537-62fd-4682-bf0a-6e27bdafdee0",
+      "name": "Disparo_renovação"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1d08f391-ce83-4a7d-8566-88023c475087",
+              "leftValue": "={{ $('Aviso_renovação').item.json.Parceiro }}",
+              "rightValue": "Isabella",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        992,
+        -160
+      ],
+      "id": "9cc5d0e2-080c-4a5d-aae9-4a13c0c8cfbc",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "atendimento",
+        "remoteJid": "=553197620119",
+        "messageText": "={{ $json.lembreteInterno }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -208
+      ],
+      "id": "9fd83497-4254-47c9-8c5e-03ca336c27ac",
+      "name": "Isabella",
+      "credentials": {
+        "evolutionApi": {
+          "id": "Ndfp6z7ZuSCa2Egw",
+          "name": "atendimento"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "atendimento",
+        "remoteJid": "={{ $json.Telefone }}",
+        "messageText": "={{ $json.whatsappMessage }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -416
+      ],
+      "id": "08fafd53-31a8-4d53-b67e-00ffc60512bb",
+      "name": "Cliente1",
+      "credentials": {
+        "evolutionApi": {
+          "id": "Ndfp6z7ZuSCa2Egw",
+          "name": "atendimento"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "atendimento",
+        "remoteJid": "=5511983500019",
+        "messageText": "={{ $json.lembreteInterno }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        1360,
+        -48
+      ],
+      "id": "92144db2-c99f-4365-9257-cdfe93a612b8",
+      "name": "Matriz",
+      "credentials": {
+        "evolutionApi": {
+          "id": "Ndfp6z7ZuSCa2Egw",
+          "name": "atendimento"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const saida = $input.all().map(item => {\n  const json = { ...item.json };\n\n  // --- 1. FUNÇÃO: TRATAR DATA ---\n  function formatarDataBR(valor) {\n    if (!valor) return 'em breve';\n    let s = String(valor).trim().split(' ')[0];\n    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) {\n      const [yyyy, mm, dd] = s.split('-');\n      return `${dd}/${mm}/${yyyy}`;\n    }\n    return s;\n  }\n\n  const dataExp = formatarDataBR(json.Expiração || json['Data de Vencimento'] || json.VencimentoISO);\n\n  // --- 2. LÓGICA DE DOCUMENTO (TAMANHO REAL + PONTUAÇÃO) ---\n  const docLimpo = String(json['Documento Registrado'] || json.Documento || json.CNPJ || '').replace(/\\D/g, '');\n  let docExibir = \"N/A\";\n  let rotuloDoc = \"Documento\";\n\n  if (docLimpo.length === 11) {\n    rotuloDoc = \"CPF\";\n    // Padrão: 000.000.000-00 (11 dígitos)\n    // Vamos ocultar do 4º ao 7º dígito\n    docExibir = `${docLimpo.slice(0, 3)}.XXX.X${docLimpo.slice(7, 9)}-${docLimpo.slice(9, 11)}`;\n    // Resultado exemplo: 195.XXX.X66-34 (Total 11 números/X)\n  } \n  else if (docLimpo.length === 14) {\n    rotuloDoc = \"CNPJ\";\n    // Padrão: 00.000.000/0000-00 (14 dígitos)\n    // Vamos ocultar do 5º ao 8º dígito (os 4 que vêm antes da barra)\n    docExibir = `${docLimpo.slice(0, 2)}.${docLimpo.slice(2, 5)}.XXX/${docLimpo.slice(8, 12)}-${docLimpo.slice(12, 14)}`;\n    // Resultado exemplo: 49.73X.XXX/0001-19 (Total 14 números/X)\n  }\n\n  // --- 3. AGENTE E NOME ---\n  const nomeAgenteRaw = json['Nome Agente'] || json['Vendedor/Indicação'] || 'Alexandre';\n  const nomeAgente = String(nomeAgenteRaw).split(' ')[0].toUpperCase();\n  const nomeRef = json['Nome/Razão Social'] || json.Nome || 'CLIENTE';\n\n  // --- 4. MONTAGEM DA MENSAGEM ---\n  json.whatsappMessage = `👋 Olá, *${nomeRef}*! Tudo bem?\n\n📅 Passando para te avisar que seu certificado digital vai expirar em *${dataExp}*.\n\nPara *garantir a continuidade das suas operações*, recomendamos a renovação imediata. ✅\n\n---\n*Detalhes do seu certificado:*\n📄 *Produto:* ${json.Certificado || json.ProdutoPadronizado || 'Certificado Digital'}\n📦 *Pedido/Ticket:* ${json['Pedido/Ticket'] || json.Protocolo || 'N/A'}\n📅 *Data de expiração:* ${dataExp}\n🔢 *${rotuloDoc}:* ${docExibir}\n---\n\n👉 Fale conosco para iniciar o processo de renovação. Conte com a CertiID para manter seu certificado digital sempre em dia!\n\nAgente de Registro - *${nomeAgente}* 🔒✨`;\n\n  return { json };\n});\n\nreturn saida;\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        -416
+      ],
+      "id": "3876e980-8fd4-4712-9683-9587306e615a",
+      "name": "Aviso_renovação"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\n// 1. CAPTURA O PARCEIRO E O PRIMEIRO NOME\nconst parceiroCompleto = item.Parceiro || \"\";\nconst primeiroNomeParceiro = parceiroCompleto.split(' ')[0] || \"Parceiro\";\n\n// 2. DEFINE O TELEFONE DO AGENTE (ROTEAMENTO)\nlet telefoneDestino = \"5511983500019\"; // Número da Matriz\nif (parceiroCompleto.toUpperCase().includes(\"ISABELLA\")) {\n    telefoneDestino = \"553197620119\"; // Número da Isabella\n}\n\n// 3. MONTAGEM DA MENSAGEM (SEM OCULTAR DADOS)\nconst mensagem = `Olá, *${primeiroNomeParceiro}*! Dados de renovação para seu cliente:\n\n*Dados*\n🏢 *Cliente:* ${item.Cliente || item['Nome/Razão Social'] || 'Não informado'}\n🔢 *Documento:* ${item.Pedido || item['Documento Registrado'] || 'Não informado'}\n📞 *Telefone:* ${item.Telefone || 'Não informado'}\n📧 *E-mail:* ${item.Email || item['E-mail'] || 'Não informado'}\n📦 *Pedido/Protocolo:* ${item.Pedido || item.Protocolo || 'N/A'}\n📅 *Vencimento:* ${item['Expiração'] || 'Não informado'}\n📄 *Produto:* ${item.Certificado || 'Certificado Digital'}\n\n*Ação:* Favor entrar em contato para finalizar o processo! 📈`;\n\n// 4. SAÍDA DOS DADOS PARA OS PRÓXIMOS NÓS\nreturn [{\n    json: {\n        ...item,\n        lembreteInterno: mensagem,\n        telefoneAgente: telefoneDestino\n    }\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        -160
+      ],
+      "id": "3dd1e280-f662-4171-877e-60e92c031fdf",
+      "name": "Aviso_renovação1"
+    }
+  ],
+  "pinData": {
+    "Disparo Automático1": [
+      {
+        "json": {
+          "timestamp": "2026-03-25T10:00:58.023-03:00",
+          "Readable date": "March 25th 2026, 10:00:58 am",
+          "Readable time": "10:00:58 am",
+          "Day of week": "Wednesday",
+          "Year": "2026",
+          "Month": "March",
+          "Day of month": "25",
+          "Hour": "10",
+          "Minute": "00",
+          "Second": "58",
+          "Timezone": "America/Sao_Paulo (UTC-03:00)"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Loop Over Items1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separador de datas1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Disparo Automático1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Aviso_renovação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter Formato": {
+      "main": [
+        [
+          {
+            "node": "Separador de datas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Converter Formato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s)": {
+      "main": [
+        []
+      ]
+    },
+    "Disparo_renovação": {
+      "main": [
+        [
+          {
+            "node": "Aviso_renovação1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Cliente1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Isabella",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Matriz",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Isabella": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Cliente1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso_renovação": {
+      "main": [
+        [
+          {
+            "node": "Disparo_renovação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aviso_renovação1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "311db7a9-8b5c-40b1-91ca-74002646e723",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c7c80362368f5797d33ff9abfd48f4da88cc2118b57c4bbe52975d23ba68e85"
+  },
+  "id": "TrfbZc9VlJaxGG2Z",
+  "tags": []
+}

@@ -1,0 +1,532 @@
+{
+  "name": "Fluxo_atendimento_Chatwoot",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $('Tratando dados do webhook').item.json.Whatsapp }}",
+              "value2": "={{ $json['getPhone_number'] }}"
+            }
+          ]
+        }
+      },
+      "id": "38a21f4a-f1f3-4975-ac70-de09964ac8c9",
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -528,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "Whatsapp",
+              "stringValue": "=+{{ $('Webhook').item.json[\"body\"][\"numero do whatsapp\"].split(\"@\")[0] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5267ae34-c029-4fbc-9647-0699bd02830f",
+      "name": "Tratando dados do webhook",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        -2064,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data.payload",
+        "options": {}
+      },
+      "id": "c122c901-8967-483a-8983-a94e374cba52",
+      "name": "Listando itens",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3.1,
+      "position": [
+        -1440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c0f7bcbc-f052-46b8-8259-434ccf858f56",
+              "leftValue": "={{ $('dadosArmazenado').item.json[\"agente\"] }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5b071b71-bfd4-4224-bfeb-21d8bbcab56c",
+      "name": "If",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        0,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "path": "32800484",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f130159d-1e62-4b35-ad8b-77ca25f3e75b",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -2288,
+        320
+      ],
+      "webhookId": "3ebffc8a-20df-4500-a3f0-3085fe3541de"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "notFound",
+        "options": {}
+      },
+      "id": "78372db0-6335-4dec-88de-7a35425ed189",
+      "name": "retornaMAMFlow",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        -1056,
+        144
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"StopIA\": \"{{ $('dadosArmazenado').item.json.meta.team.name }}\",\n  \"id\": \"{{ $('dadosArmazenado').item.json.id.toString() }}\"\n}",
+        "options": {}
+      },
+      "id": "ee2440df-f069-416c-8bd5-74dd99359ee6",
+      "name": "retornaId_MAMFlow",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"StopIA\": \"StopIA\",\n  \"id\": \"{{ $('dadosArmazenado').item.json.id.toString() }}\"\n}",
+        "options": {}
+      },
+      "id": "cd189f96-36c5-4629-8160-db66854aedd4",
+      "name": "retornaStopIA_MAMFlow",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        464,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('variáveisChatwoot').item.json[\"urlChatwoot\"] }}/api/v1/accounts/{{ $('variáveisChatwoot').item.json[\"Account ID\"] }}/conversations/{{ $json[\"id\"] }}/labels",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('variáveisChatwoot').item.json[\"userToken\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"labels\": [\n    \"ia_atendendo\"\n  ]\n}",
+        "options": {}
+      },
+      "id": "f75ada92-520a-4a0b-bc9b-5ebf8c3c3f70",
+      "name": "etiqueta ia_atendendo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('variáveisChatwoot').item.json[\"urlChatwoot\"] }}/api/v1/accounts/{{ $('variáveisChatwoot').item.json[\"Account ID\"] }}/conversations/{{ $json[\"id\"] }}/labels",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $('variáveisChatwoot').item.json[\"userToken\"] }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"labels\": [\n    \"agente_atendendo\"\n  ]\n}",
+        "options": {}
+      },
+      "id": "76154dd9-84f4-4699-9e7d-bc19707c96a0",
+      "name": "estiqueta agente_atendendo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "id da conversa",
+              "stringValue": "={{ $json['getId'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c1c15a4e-af0d-41b4-bc3b-1d5ab228d20c",
+      "name": "dadosArmazenado",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        -256,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "urlChatwoot",
+              "stringValue": "https://chatwoot.automilionaria.trade"
+            },
+            {
+              "name": "userToken",
+              "stringValue": "VueXPeuiFeTvvzWGZaVnSbxV"
+            },
+            {
+              "name": "Account ID",
+              "stringValue": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6979107d-3143-450a-b545-47d4a0d60c39",
+      "name": "variáveisChatwoot",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        -1840,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json['urlChatwoot'] }}/api/v1/accounts/{{ $json['Account ID'] }}/conversations",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "api_access_token",
+              "value": "={{ $json['userToken'] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "d5f11896-496b-4543-b6c7-1dc6e7247dba",
+      "name": "getConversation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1648,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "getId",
+              "stringValue": "={{ $json.id }}"
+            },
+            {
+              "name": "getPhone_number",
+              "stringValue": "={{ $json.meta.sender.phone_number }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "934a2d32-edfa-49ee-aa46-a2d53d61a25f",
+      "name": "testaDados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        -736,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "fields": {
+          "values": [
+            {
+              "name": "phone_number",
+              "stringValue": "={{ $json.meta.sender.phone_number }}"
+            },
+            {
+              "name": "id",
+              "stringValue": "={{ $json.id }}"
+            },
+            {
+              "name": "agente",
+              "stringValue": "={{ $json.meta.assignee.name }}"
+            },
+            {
+              "name": "etiqueta",
+              "stringValue": "={{ $json.meta.team.name }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "34b64821-a071-4274-ad4b-fbd737f3fb7c",
+      "name": "separaDados",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.2,
+      "position": [
+        -1248,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "e40aa884-ea39-4452-a7bc-cace8f60a536",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1008,
+        320
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "dadosArmazenado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tratando dados do webhook": {
+      "main": [
+        [
+          {
+            "node": "variáveisChatwoot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listando itens": {
+      "main": [
+        [
+          {
+            "node": "separaDados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "retornaId_MAMFlow",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "etiqueta ia_atendendo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "estiqueta agente_atendendo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Tratando dados do webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "estiqueta agente_atendendo": {
+      "main": [
+        [
+          {
+            "node": "retornaStopIA_MAMFlow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "dadosArmazenado": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "variáveisChatwoot": {
+      "main": [
+        [
+          {
+            "node": "getConversation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "getConversation": {
+      "main": [
+        [
+          {
+            "node": "Listando itens",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "testaDados": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "separaDados": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "retornaMAMFlow",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "testaDados",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "db1616c9-2d69-453b-ab8a-88101d8e25b1",
+  "meta": {
+    "instanceId": "2c7c80362368f5797d33ff9abfd48f4da88cc2118b57c4bbe52975d23ba68e85"
+  },
+  "id": "DMJokk5LPhzu9kg6",
+  "tags": [
+    {
+      "updatedAt": "2025-10-11T16:41:23.006Z",
+      "createdAt": "2025-10-11T16:41:23.006Z",
+      "id": "cYoVuTBXAcdcK4Mv",
+      "name": "CHATWOOT"
+    }
+  ]
+}

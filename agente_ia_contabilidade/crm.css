@@ -1,0 +1,196 @@
+/* Estilos específicos para o CRM */
+
+/* Cores das etapas do Kanban */
+:root {
+    --status-iniciou-conversa: #ffd54f;
+    --status-conversando: #4fc3f7;
+    --status-agendado: #66bb6a;
+    --status-cliente: #ba68c8;
+    --status-follow-up: #ff9800;
+    --status-cancelou-agendamento: #ef5350;
+    --status-perdido: #9e9e9e;
+}
+
+/* Container do Kanban */
+.kanban-container {
+    flex: 1;
+    padding: 20px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
+.kanban-board {
+    display: flex;
+    min-height: calc(100vh - 140px);
+    gap: 16px;
+    min-width: fit-content;
+    padding-bottom: 20px;
+}
+
+/* Colunas do Kanban */
+.kanban-column {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-sidebar);
+    border-radius: var(--radius);
+    max-height: 100%;
+    border-top: 4px solid;
+}
+
+.kanban-column[data-status="iniciou-conversa"] {
+    border-color: var(--status-iniciou-conversa);
+}
+
+.kanban-column[data-status="conversando"] {
+    border-color: var(--status-conversando);
+}
+
+.kanban-column[data-status="agendado"] {
+    border-color: var(--status-agendado);
+}
+
+.kanban-column[data-status="cliente"] {
+    border-color: var(--status-cliente);
+}
+
+.kanban-column[data-status="follow-up"] {
+    border-color: var(--status-follow-up);
+}
+
+.kanban-column[data-status="cancelou-agendamento"] {
+    border-color: var(--status-cancelou-agendamento);
+}
+
+.kanban-column[data-status="perdido"] {
+    border-color: var(--status-perdido);
+}
+
+.column-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.column-title {
+    font-size: 1rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.column-count {
+    background: var(--bg-main);
+    border-radius: 12px;
+    padding: 2px 8px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.column-cards {
+    padding: 16px;
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Cards de Lead */
+.lead-card {
+    background: var(--bg-main);
+    border-radius: var(--radius);
+    padding: 16px;
+    cursor: grab;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    user-select: none;
+}
+
+.lead-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.lead-card:active {
+    cursor: grabbing;
+}
+
+.lead-name {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 1rem;
+}
+
+.lead-whatsapp {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.lead-motivo {
+    font-size: 0.85rem;
+    line-height: 1.4;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+}
+
+/* Estado de carregamento */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 120px);
+    gap: 20px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--accent);
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Estado de erro */
+.error-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: calc(100vh - 120px);
+    gap: 16px;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.error-icon {
+    font-size: 3rem;
+    color: var(--status-cancelou-agendamento);
+}
+
+/* Estilo para o card enquanto está sendo arrastado */
+.lead-card.dragging {
+    opacity: 0.8;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    transform: scale(1.05);
+}
+
+.column-cards.drop-target {
+    background: rgba(56, 189, 248, 0.1);
+    border-radius: var(--radius);
+}
+
+/* Media queries para responsividade */
+@media (max-width: 768px) {
+    .kanban-container {
+        padding: 10px;
+    }
+}

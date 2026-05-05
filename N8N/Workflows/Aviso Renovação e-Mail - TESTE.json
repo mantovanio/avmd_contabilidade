@@ -1,0 +1,105 @@
+{
+  "name": "Aviso Renovação e-Mail - TESTE",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "return [{\n  \"Data de Vencimento\": new Date(new Date().setDate(new Date().getDate() + 5)).toLocaleDateString('pt-BR'),\n  \"Cliente\": \"Cliente Teste\",\n  \"Email\": \"teste@exemplo.com\",\n  \"DebugProdutoOriginal\": \"e-CPF A1\",\n  \"CPF\": \"123.456.789-00\",\n  \"CNPJ\": \"\",\n  \"LinkCertifast\": \"https://link-teste.com\",\n  \"LinkCertiid\": \"https://link-teste.com\",\n  \"AgenteResponsavel\": \"Agente Teste\",\n  \"Razão Social\": \"Empresa Teste\"\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [-1104, 112],
+      "id": "mock-trigger-id",
+      "name": "Mock Data Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "Data de Vencimento",
+              "value": "={{ $json[\"Data de Vencimento\"] }}",
+              "type": "string"
+            },
+            {
+              "name": "Cliente",
+              "value": "={{ $json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "name": "Produto",
+              "value": "={{ $json.DebugProdutoOriginal }}",
+              "type": "string"
+            },
+            {
+              "name": "CPF",
+              "value": "={{ $json.CPF }}",
+              "type": "string"
+            },
+            {
+              "name": "CNPJ",
+              "value": "={{ $json.CNPJ }}",
+              "type": "string"
+            },
+            {
+              "name": "certifastLink",
+              "value": "={{ $json.LinkCertifast }}",
+              "type": "string"
+            },
+            {
+              "name": "certiidLink",
+              "value": "={{ $json.LinkCertiid }}",
+              "type": "string"
+            },
+            {
+              "name": "AGR",
+              "value": "={{ $json.AgenteResponsavel }}",
+              "type": "string"
+            },
+            {
+              "name": "Primeiro Nome",
+              "value": "={{ $json.Cliente.split(' ')[0] }}",
+              "type": "string"
+            },
+            {
+              "name": "Razão Social",
+              "value": "={{ $json[\"Razão Social\"] }}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [-800, 112],
+      "id": "5ce6da91-a718-4e23-9942-9803d99c9101",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fromEmail": "teste@exemplo.com",
+        "toEmail": "meu-email-de-teste@exemplo.com",
+        "subject": "TESTE: Aviso de Vencimento",
+        "html": "<html><body>TESTE - Aviso de vencimento para {{ $json.Cliente }}</body></html>"
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [144, 416],
+      "id": "de3f29aa-7e0a-424a-92e0-4ade9c428c27",
+      "name": "Send Email renova cnpj (MOCK)"
+    }
+  ],
+  "connections": {
+    "Mock Data Trigger": {
+      "main": [[{"node": "Edit Fields", "type": "main", "index": 0}]]
+    },
+    "Edit Fields": {
+      "main": [[{"node": "Send Email renova cnpj (MOCK)", "type": "main", "index": 0}]]
+    }
+  },
+  "active": false
+}

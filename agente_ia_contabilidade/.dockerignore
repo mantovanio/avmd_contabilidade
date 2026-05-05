@@ -1,0 +1,22 @@
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Arquivos de documentação e configuração
+*.md
+*.sh
+.env
+.env.example
+
+# Node modules (caso você adicione algum no futuro)
+node_modules
+
+# Outros
+.DS_Store
+*.log
+tmp/

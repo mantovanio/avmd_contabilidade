@@ -1,0 +1,44 @@
+{
+  "workflows": {
+    "k9ETM34Klf1UfDry": {
+      "lastSyncedHash": "84ced8682bc3b9f923e7d09b0469f2a6cc5daabd848a42cd42d42af190c7e4fa",
+      "lastSyncedAt": "2026-04-06T21:52:20.331Z",
+      "filename": "4- Agente IA (agendamento) _ Ápice Contábil.workflow.ts"
+    },
+    "jZ0Hxf6RZRuzoABm": {
+      "lastSyncedHash": "4fe57bc82a9b0f36a84c4575ab760303f9017c1c7b5e8558749b0501d5e7ee9f",
+      "lastSyncedAt": "2026-04-23T15:05:41.217Z",
+      "filename": "recebimento de agendamento Certisign.workflow.ts"
+    },
+    "uEOqK0jOSIWCDmCB": {
+      "lastSyncedHash": "8ea316ae5d68b1adc1ad7cfd5ad5dcb788c3c9b2f3e10f8921e210beebec2592",
+      "lastSyncedAt": "2026-04-23T17:07:48.913Z",
+      "filename": "3- CRM _ Ápice Contábil.workflow.ts"
+    },
+    "8ymJIc35yT9pzLQD": {
+      "lastSyncedHash": "662fb61ea4d5748dda80d2fdb40bf49889e688a5e9e86bedc795ce4c8e5207b3",
+      "lastSyncedAt": "2026-04-06T22:14:10.900Z",
+      "filename": "1- Laura _ Ápice Contábil.workflow.ts"
+    },
+    "92XPllCS3lvtsPcg": {
+      "lastSyncedHash": "794daa32943e4efeeb8b6573bedef25e0cd16d6da8236aff79c25cf5ca66be05",
+      "lastSyncedAt": "2026-04-06T21:46:36.686Z",
+      "filename": "2- sobreEmpresa _ Ápice Contábil.workflow.ts"
+    },
+    "D8WCBnUup5XVZIwc": {
+      "lastSyncedHash": "611cc38eb8eae72dca3158f2cb45925def4b66c9ab45cebdeb40ed9d58cdd517",
+      "lastSyncedAt": "2026-04-06T22:00:37.209Z",
+      "filename": "1- Follow UP 20min _ Ápice Contábil.workflow.ts"
+    },
+    "4WlMdMHG9g0YeNB9": {
+      "lastSyncedHash": "4055c29e1368f7e7c6aec11cdd52a0c0a3a1464bbe370d6b694cfee09a5881d8",
+      "lastSyncedAt": "2026-04-06T22:00:59.120Z",
+      "filename": "2- Follow UP 24 horas _ Ápice Contábil.workflow.ts"
+    },
+    "bicftP0mF9gEsdvs": {
+      "lastSyncedHash": "ddcbf652526488e83ad9ae4d889d1b13eea1a402bedd795c8a1b2b5ba48def1e",
+      "lastSyncedAt": "2026-04-06T21:59:44.485Z",
+      "filename": "5- Eventos Agenda _ Ápice Contábil.workflow.ts"
+    }
+  }
+}

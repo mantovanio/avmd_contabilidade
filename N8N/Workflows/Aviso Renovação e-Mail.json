@@ -1,0 +1,748 @@
+{
+  "name": "Aviso Renovação e-Mail",
+  "nodes": [
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "2cc89738-503f-4fe1-9f91-27ab96893fce",
+              "name": "Data de Vencimento",
+              "value": "={{ $json[\"Data de Vencimento\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "70fcfcf4-eebc-470d-b323-da7e3e69bd04",
+              "name": "Cliente",
+              "value": "={{ $json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "a15541f0-4cfc-4dc4-b82c-d7d46360e67a",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "27c225c0-b806-474c-b1bd-b8113041bb2d",
+              "name": "Produto",
+              "value": "={{ $json.DebugProdutoOriginal }}",
+              "type": "string"
+            },
+            {
+              "id": "5ce88684-50a4-4157-b3ad-64156bc94f84",
+              "name": "CPF",
+              "value": "={{ $json.CPF }}",
+              "type": "string"
+            },
+            {
+              "id": "0f846428-e4f0-47a0-a104-ed8f24f4bab8",
+              "name": "CNPJ",
+              "value": "={{ $json.CNPJ }}",
+              "type": "string"
+            },
+            {
+              "id": "1498aa92-44fa-4cfb-bb62-968de65b37f0",
+              "name": "certifastLink",
+              "value": "={{ $json.LinkCertifast }}",
+              "type": "string"
+            },
+            {
+              "id": "136681b5-826c-454f-a47e-26f39514635b",
+              "name": "certiidLink",
+              "value": "={{ $json.LinkCertiid }}",
+              "type": "string"
+            },
+            {
+              "id": "b2125026-cbe4-4007-96c8-283df76aafc6",
+              "name": "AGR",
+              "value": "={{ $json.AgenteResponsavel }}",
+              "type": "string"
+            },
+            {
+              "id": "6733a8f2-c814-4f50-aec6-3871899d5917",
+              "name": "Primeiro Nome",
+              "value": "={{ $json.Cliente.split(' ')[0] }}\n",
+              "type": "string"
+            },
+            {
+              "id": "ee386011-ba7e-4cb7-9b8b-95793e80e81d",
+              "name": "Razão Social",
+              "value": "={{ $json[\"Razão Social\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1040,
+        384
+      ],
+      "id": "5ce6da91-a718-4e23-9942-9803d99c9101",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fromEmail": "contato@certifast.com.br",
+        "toEmail": "={{ $json.Email }}",
+        "subject": "=\"subject\": \"Seu certificado digital vai vencer em {{ $json['Data de Vencimento'] }} - Podemos iniciar a renovação.\"",
+        "html": "=<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Aviso de Vencimento de Certificado Digital</title>\n  <style>\n    body {\n      font-family: 'Inter', 'Poppins', sans-serif;\n      background-color: #f8fafc;\n      color: #0f172a;\n      margin: 0;\n      padding: 0;\n      line-height: 1.6;\n    }\n    .container {\n      max-width: 640px;\n      margin: 40px auto;\n      background-color: #ffffff;\n      padding: 32px;\n      border-radius: 12px;\n      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);\n      border: 1px solid #e2e8f0;\n    }\n    .header {\n      text-align: center;\n      margin-bottom: 32px;\n      padding-bottom: 24px;\n      border-bottom: 1px solid #e2e8f0;\n    }\n    .header img {\n      max-width: 120px;\n      margin: 0 12px 16px;\n      vertical-align: middle;\n    }\n    h1 {\n      color: #0f172a;\n      font-size: 26px;\n      font-weight: 700;\n      margin: 0;\n      line-height: 1.3;\n    }\n    .content {\n      font-size: 16px;\n      color: #334155;\n    }\n    .content p {\n      margin: 16px 0;\n    }\n    .content strong {\n      color: #0f172a;\n      font-weight: 600;\n    }\n    .highlight {\n      background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);\n      padding: 16px;\n      border-radius: 8px;\n      text-align: center;\n      margin: 24px 0;\n      font-weight: 500;\n      color: #0f172a;\n      border: 1px solid #cbd5e1;\n    }\n    .button-container {\n      text-align: center;\n      margin: 24px 0;\n    }\n    .button {\n      display: inline-block;\n      padding: 12px 32px;\n      background-color: #1e3a8a; /* Cor sólida */\n      color: #ffffff !important; /* Garantia que não será sobrescrito */\n      text-decoration: none;\n      border-radius: 6px;\n      font-weight: 600;\n      font-size: 15px;\n      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Sombra chapada */\n      transition: transform 0.2s, box-shadow 0.2s;\n      margin: 8px;\n    }\n    .button:hover {\n      transform: translateY(-2px);\n      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n    }\n    ul {\n      padding-left: 24px;\n      margin: 16px 0;\n      list-style: none;\n    }\n    ul li {\n      margin-bottom: 12px;\n      font-size: 15px;\n      position: relative;\n      padding-left: 24px;\n    }\n    ul li:before {\n      content: '•';\n      position: absolute;\n      left: 0;\n      color: #3b82f6;\n      font-size: 20px;\n      line-height: 1;\n    }\n    .footer {\n      text-align: center;\n      margin-top: 32px;\n      padding-top: 24px;\n      border-top: 1px solid #e2e8f0;\n      font-size: 14px;\n      color: #64748b;\n    }\n    .footer a {\n      color: #3b82f6;\n      text-decoration: none;\n      font-weight: 500;\n    }\n    .footer a:hover {\n      text-decoration: underline;\n    }\n    @media (max-width: 600px) {\n      .container {\n        padding: 24px;\n        margin: 24px;\n      }\n      h1 {\n        font-size: 22px;\n      }\n      .button {\n        padding: 10px 24px;\n        font-size: 14px;\n      }\n      .header img {\n        max-width: 100px;\n      }\n      .content {\n        font-size: 15px;\n      }\n    }\n  </style>\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter :wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap\" rel=\"stylesheet\" />\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <img src=\"https://certiid.pjfit.com.br/data/172/publico/site/65401308d7220.png \" alt=\"Logo CertiID\" />\n      <img src=\"https://certifast.com.br/img/home/novo/certifast-logo.png \" alt=\"Logo Certifast\" />\n      <h1>📅 Aviso de Vencimento do Seu Certificado Digital</h1>\n    </div>\n    <div class=\"content\">\n      <p>Prezado(a) <strong>{{ $json['Primeiro Nome'] }}</strong>,</p>\n      <p>Eu sou <strong>{{ $json.AGR }}</strong>, da <strong>Certifast Certificação Digital</strong>. Informo que seu certificado digital <strong>{{ $json.Produto }}</strong> está próximo do vencimento, com data marcada para <strong>{{ $json['Data de Vencimento'] }}</strong>.</p>\n      <div class=\"highlight\">\n        <p>Renove agora e garanta <strong>10% de desconto</strong> exclusivo.</p>\n      </div>\n      <p>Detalhes do seu certificado:</p>\n      <ul>\n        <li><strong>Responsável pelo certificado:</strong> {{ $json.Cliente }}</li>\n        <li><strong>Produto:</strong> {{ $json.Produto }}</li>\n        <li><strong>CPF:</strong> {{ $json.CPF_Mascarado }}</li>\n       \n      <p>Para evitar interrupções nos seus serviços, recomendamos renovar o quanto antes. Escolha entre a <strong>CertiID</strong> ou a <strong>Certifast</strong> para um processo rápido e seguro.</p>\n        <div class=\"button-container\">\n  <!-- BOTÃO CERTIID: Sempre aparece -->\n  <a href=\"{{ $json.certiidLink }}\" class=\"button\">🔒 Renovar via CertiID (Safeweb)</a>\n  \n  <!-- BOTÃO CERTIFAST: Só aparece se o Agente for o Rogério -->\n  {{ $json.AgenteResponsavel === 'Rogério' ? '<a href=\"' + $json.LinkCertifast + '\" class=\"button\">🔒 Renovar via Certifast (Certisign)</a>' : '' }}\n</div>\n\n      <p>Deseja explorar as opções? Acesse: <a href=\"https://parceiro.gestaoar.shop/arcertiid/bh \">CertiID</a> | <a href=\"https://www.certifast.com.br \">Certifast</a></p>\n      <p>Estamos à disposição para esclarecer qualquer dúvida.</p>\n    </div>\n    <div class=\"footer\">\n      <p>Atenciosamente,</p>\n      <p><strong>CertiID e Certifast Certificação Digital</strong></p>\n      <p><a href=\"tel:+551132800484\">(11) 3280-0484 (WhatsApp)</a> | <a href=\"mailto:contato@certifast.com.br\">contato@certifast.com.br</a></p>\n   <p style=\"font-size: 12px; color: #647475;\">\n        *CertiID é uma Agência de Registro vinculada à Safeweb. Certifast é uma Agência de Registro vinculada à Certisign. Ambas são homologadas a operar certificados digitais ICP-BRASIL.\n      </p>   \n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        624
+      ],
+      "id": "a098479d-a77b-4bac-a683-f884b903e670",
+      "name": "Send Email  renova cpf",
+      "webhookId": "a75b5602-2923-41fb-8acc-af7ac2415b91",
+      "retryOnFail": true,
+      "credentials": {
+        "smtp": {
+          "id": "6e47pVwT4AGiQadz",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "contato@certifast.com.br",
+        "toEmail": "={{ $json.Email }}",
+        "subject": "=\"subject\": \"Seu certificado digital vai vencer em {{ $json['Data de Vencimento'] }} - Podemos iniciar a renovação.\"",
+        "html": "=<!DOCTYPE html>\n<html lang=\"pt-BR\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Aviso de Vencimento de Certificado Digital</title>\n  <style>\n    body {\n      font-family: 'Inter', 'Poppins', sans-serif;\n      background-color: #f8fafc;\n      color: #0f172a;\n      margin: 0;\n      padding: 0;\n      line-height: 1.6;\n    }\n    .container {\n      max-width: 640px;\n      margin: 40px auto;\n      background-color: #ffffff;\n      padding: 32px;\n      border-radius: 12px;\n      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);\n      border: 1px solid #e2e8f0;\n    }\n    .header {\n      text-align: center;\n      margin-bottom: 32px;\n      padding-bottom: 24px;\n      border-bottom: 1px solid #e2e8f0;\n    }\n    .header img {\n      max-width: 120px;\n      margin: 0 12px 16px;\n      vertical-align: middle;\n    }\n    h1 {\n      color: #0f172a;\n      font-size: 26px;\n      font-weight: 700;\n      margin: 0;\n      line-height: 1.3;\n    }\n    .content {\n      font-size: 16px;\n      color: #334155;\n    }\n    .content p {\n      margin: 16px 0;\n    }\n    .content strong {\n      color: #0f172a;\n      font-weight: 600;\n    }\n    .highlight {\n      background: linear-gradient(135deg, #e2e8f0 0%, #f1f5f9 100%);\n      padding: 16px;\n      border-radius: 8px;\n      text-align: center;\n      margin: 24px 0;\n      font-weight: 500;\n      color: #0f172a;\n      border: 1px solid #cbd5e1;\n    }\n    .button-container {\n      text-align: center;\n      margin: 24px 0;\n    }\n    .button {\n      display: inline-block;\n      padding: 12px 32px;\n      background-color: #1e3a8a; /* Cor sólida */\n      color: #ffffff !important; /* Garantia que não será sobrescrito */\n      text-decoration: none;\n      border-radius: 6px;\n      font-weight: 600;\n      font-size: 15px;\n      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1); /* Sombra chapada */\n      transition: transform 0.2s, box-shadow 0.2s;\n      margin: 8px;\n    }\n    .button:hover {\n      transform: translateY(-2px);\n      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);\n    }\n    ul {\n      padding-left: 24px;\n      margin: 16px 0;\n      list-style: none;\n    }\n    ul li {\n      margin-bottom: 12px;\n      font-size: 15px;\n      position: relative;\n      padding-left: 24px;\n    }\n    ul li:before {\n      content: '•';\n      position: absolute;\n      left: 0;\n      color: #3b82f6;\n      font-size: 20px;\n      line-height: 1;\n    }\n    .footer {\n      text-align: center;\n      margin-top: 32px;\n      padding-top: 24px;\n      border-top: 1px solid #e2e8f0;\n      font-size: 14px;\n      color: #64748b;\n    }\n    .footer a {\n      color: #3b82f6;\n      text-decoration: none;\n      font-weight: 500;\n    }\n    .footer a:hover {\n      text-decoration: underline;\n    }\n    @media (max-width: 600px) {\n      .container {\n        padding: 24px;\n        margin: 24px;\n      }\n      h1 {\n        font-size: 22px;\n      }\n      .button {\n        padding: 10px 24px;\n        font-size: 14px;\n      }\n      .header img {\n        max-width: 100px;\n      }\n      .content {\n        font-size: 15px;\n      }\n    }\n  </style>\n  <link href=\"https://fonts.googleapis.com/css2?family=Inter :wght@400;500;600;700&family=Poppins:wght@400;500;600&display=swap\" rel=\"stylesheet\" />\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <img src=\"https://certiid.pjfit.com.br/data/172/publico/site/65401308d7220.png \" alt=\"Logo CertiID\" />\n      <img src=\"https://certifast.com.br/img/home/novo/certifast-logo.png \" alt=\"Logo Certifast\" />\n      <h1>📅 Aviso de Vencimento do Seu Certificado Digital</h1>\n    </div>\n    <div class=\"content\">\n      <p>Prezado(a) <strong>{{ $json['Primeiro Nome'] }}</strong>,</p>\n      <p>Eu sou <strong>{{ $json.AGR }}</strong>, da <strong>Certifast Certificação Digital</strong>. Informo que seu certificado digital <strong>{{ $json.Produto }}</strong> está próximo do vencimento, com data marcada para <strong>{{ $json['Data de Vencimento'] }}</strong>.</p>\n      <div class=\"highlight\">\n        <p>Renove agora e garanta <strong>10% de desconto</strong> exclusivo.</p>\n      </div>\n      <p>Detalhes do seu certificado:</p>\n      <ul>\n        <li><strong>Empresa:</strong> {{ $json['Razão Social'] }}</li>\n        <li><strong>Produto:</strong> {{ $json.Produto }}</li>\n        <li><strong>CNPJ:</strong> {{ $json.CNPJ }}</li>\n       \n      <p>Para evitar interrupções nos seus serviços, recomendamos renovar o quanto antes. Escolha entre a <strong>CertiID</strong> ou a <strong>Certifast</strong> para um processo rápido e seguro.</p>\n        <div class=\"button-container\">\n  <!-- BOTÃO CERTIID: Sempre aparece -->\n  <a href=\"{{ $json.certiidLink }}\" class=\"button\">🔒 Renovar via CertiID (Safeweb)</a>\n  \n  <!-- BOTÃO CERTIFAST: Só aparece se o Agente for o Rogério -->\n  {{ $json.AgenteResponsavel === 'Rogério' ? '<a href=\"' + $json.LinkCertifast + '\" class=\"button\">🔒 Renovar via Certifast (Certisign)</a>' : '' }}\n</div>\n\n      <p>Deseja explorar as opções? Acesse: <a href=\"https://parceiro.gestaoar.shop/arcertiid/bh \">CertiID</a> | <a href=\"https://www.certifast.com.br \">Certifast</a></p>\n      <p>Estamos à disposição para esclarecer qualquer dúvida.</p>\n    </div>\n    <div class=\"footer\">\n      <p>Atenciosamente,</p>\n      <p><strong>CertiID e Certifast Certificação Digital</strong></p>\n      <p><a href=\"tel:+551132800484\">(11) 3280-0484 (WhatsApp)</a> | <a href=\"mailto:contato@certifast.com.br\">contato@certifast.com.br</a></p>\n   <p style=\"font-size: 12px; color: #647475;\">\n        *CertiID é uma Agência de Registro vinculada à Safeweb. Certifast é uma Agência de Registro vinculada à Certisign. Ambas são homologadas a operar certificados digitais ICP-BRASIL.\n      </p>   \n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        416
+      ],
+      "id": "de3f29aa-7e0a-424a-92e0-4ade9c428c27",
+      "name": "Send Email  renova cnpj",
+      "webhookId": "e0d85559-6505-4b4a-8bc5-edf253d93d5b",
+      "retryOnFail": true,
+      "credentials": {
+        "smtp": {
+          "id": "6e47pVwT4AGiQadz",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const cpfOriginal = $json.CPF || '';\n\nfunction mascararCPF(cpf) {\n  if (!cpf) return '';\n  const apenasNumeros = cpf.replace(/\\D/g, '');\n  if (apenasNumeros.length !== 11) return cpf;\n  return `${apenasNumeros.slice(0, 3)}.***.***-${apenasNumeros.slice(9)}`;\n}\n\nreturn {\n  ...$json,\n  CPF_Mascarado: mascararCPF(cpfOriginal)\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        624
+      ],
+      "id": "d0e8ce44-2e75-4574-b21d-fa863c60edc4",
+      "name": "mascara CPF",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -752,
+        384
+      ],
+      "id": "6d9c6153-1ff8-4d71-8557-5899cc33477c",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 2
+      },
+      "id": "a0d0fdd2-41cd-40f9-bee4-a1215a0ed4de",
+      "name": "Wait1",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -464,
+        560
+      ],
+      "webhookId": "37b90708-c826-4e8b-b8a4-8c94b2e6276c",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        544,
+        608
+      ],
+      "id": "dbd47353-5f15-4732-ba68-f3f17bdf9e33",
+      "name": "Merge1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a97027ef-d6ee-4cad-8936-44078d74de45",
+              "name": "accepted[0]",
+              "value": "={{ $json.accepted[0] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -464,
+        368
+      ],
+      "id": "be90818c-d36e-4f43-89e9-77f628848511",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  const rawProduto = item.json.Produto || '';\n  const ponto = item.json['Ponto de Atendimento'] || '';\n  \n  // 1. FUNÇÃO DE NORMALIZAÇÃO DE TEXTO\n  function normalize(str) {\n    if (!str || typeof str !== 'string') return '';\n    return str.trim().toLowerCase().normalize(\"NFD\").replace(/[\\u0300-\\u036f]/g, '');\n  }\n\n  const produtoNorm = normalize(rawProduto);\n\n  // 2. PADRONIZAÇÃO DO PRODUTO\n  let ProdutoPadronizado = '';\n  let tipo = '';\n  let nivel = '';\n\n  if (produtoNorm.includes('e-cpf a3') || produtoNorm.includes('certificado a3 pf') || produtoNorm.includes('cedula de identidade medica')) {\n    ProdutoPadronizado = 'e-CPF A3'; tipo = 'CPF'; nivel = 'A3';\n  } else if (produtoNorm.includes('e-cpf a1') || produtoNorm.includes('certificado a1 pf')) {\n    ProdutoPadronizado = 'e-CPF A1'; tipo = 'CPF'; nivel = 'A1';\n  } else if (produtoNorm.includes('e-cnpj a1 mercado livre') || produtoNorm.includes('mercado livre') || produtoNorm.includes('pequenas empresas') || produtoNorm.includes('bling')) {\n    ProdutoPadronizado = 'e-CNPJ A1 PME'; tipo = 'CNPJ'; nivel = 'A1';\n  } else if (produtoNorm.includes('certificado a1 pj') || produtoNorm.includes('nf e a1') || produtoNorm.includes('ac certisign multipla')) {\n    ProdutoPadronizado = 'e-PJ A1'; tipo = 'PJ'; nivel = 'A1';\n  } else {\n    const regex = /(e-cpf|e-cnpj|e-pj|e-pf)[\\s-]*(a1|a3)/i;\n    const match = produtoNorm.match(regex);\n    if (match) {\n      const tipoBruto = match[1].toUpperCase().replace('E-PF', 'e-CPF').replace('E-PJ', 'e-PJ');\n      const nivelBruto = match[2].toUpperCase();\n      ProdutoPadronizado = `${tipoBruto} ${nivelBruto}`;\n      tipo = tipoBruto.includes('CPF') ? 'CPF' : 'CNPJ';\n      nivel = nivelBruto;\n    } else {\n      if (produtoNorm.includes('cpf') || produtoNorm.includes('pf')) {\n        ProdutoPadronizado = 'e-CPF A1'; tipo = 'CPF'; nivel = 'A1';\n      } else if (produtoNorm.includes('pj')) {\n        ProdutoPadronizado = 'e-PJ A1'; tipo = 'PJ'; nivel = 'A1';\n      } else {\n        ProdutoPadronizado = 'e-CNPJ A1'; tipo = 'CNPJ'; nivel = 'A1';\n      }\n    }\n  }\n\n  // 3. IDENTIFICAÇÃO DO PONTO E AGENTE\n  const normalizedPonto = normalize(ponto);\n  let vendorKey = 'DEFAULT';\n  let agente = 'Alexandre';\n\n  if (normalizedPonto.includes('prado') || normalizedPonto.includes('bh')) {\n    vendorKey = 'AR CERTIFAST - PRADO BH/MG';\n    agente = 'Isabella';\n  } else if (normalizedPonto.includes('andromeda')) {\n    vendorKey = 'ANDROMEDA';\n    agente = 'Rogério';\n  }\n\n  // 4. MAPEAMENTO DE LINKS\n  const LINK_MAPPINGS = {\n    'ANDROMEDA': {\n      'e-PJ A1': { certifast: 'https://gestaoar.certisign.com.br/GestaoAR/cliente/produto/inicio?produto=ACMA1PJHV2&grupo=CPBRB&cliente_AR=ACMVR&origem=1&cod_rev=71210', certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/76ddde28-bf23-41b3-90d0-a354c2330134' },\n      'e-CNPJ A1 PME': { certifast: 'https://gestaoar.certisign.com.br/GestaoAR/cliente/produto/inicio?produto=SRFA1PJCNSESHV5&grupo=CPBRB&cliente_AR=CRSNT&origem=1&cod_rev=71210', certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/890f8cc5-f102-4a98-931d-1375c0266668' },\n      'e-CNPJ A3': { certifast: 'https://gestaoar.certisign.com.br/GestaoAR/cliente/produto/inicio?produto=SRFA3PJSCHV2&grupo=CPBRB&cliente_AR=CRSNT&origem=1&cod_rev=71210', certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/339815af-afde-40af-8cb0-bf3054ae9fe3' },\n      'e-CNPJ A1': { certifast: 'https://gestaoar.certisign.com.br/GestaoAR/cliente/produto/inicio?produto=SRFA1PJHV2&grupo=CPBRB&cliente_AR=CRSNT&origem=1&cod_rev=71210', certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/8749346c-aa72-42f7-8fb1-78153ee7a7fe' },\n      'e-CPF A3': { certifast: 'https://gestaoar.certisign.com.br/GestaoAR/cliente/produto/inicio?produto=SRFA3PFSMHV2&grupo=CPBRB&cliente_AR=CRSNT&origem=1&cod_rev=71210', certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/62d1e0a3-a509-41b8-861b-f37f28a5dcda' },\n      'e-CPF A1': { certifast: 'https://gestaoar.certisign.com.br/GestaoAR/cliente/produto/inicio?produto=SRFA1PFHV2&grupo=CPBRB&cliente_AR=CRSNT&origem=1&cod_rev=71210', certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/4ee57e38-826b-4d5f-9efc-ffa76e51a803' }\n    },\n    'AR CERTIFAST - PRADO BH/MG': {\n      'e-PJ A1': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/bh/produto/76ddde28-bf23-41b3-90d0-a354c2330134' },\n      'e-CNPJ A1 PME': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/bh/produto/890f8cc5-f102-4a98-931d-1375c0266668' },\n      'e-CNPJ A3': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/bh/produto/339815af-afde-40af-8cb0-bf3054ae9fe3' },\n      'e-CNPJ A1': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/bh/produto/8749346c-aa72-42f7-8fb1-78153ee7a7fe' },\n      'e-CPF A3': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/bh/produto/62d1e0a3-a509-41b8-861b-f37f28a5dcda' },\n      'e-CPF A1': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/bh/produto/4ee57e38-826b-4d5f-9efc-ffa76e51a803' }\n    },\n    'DEFAULT': {\n      'e-PJ A1': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/76ddde28-bf23-41b3-90d0-a354c2330134' },\n      'e-CNPJ A1 PME': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/890f8cc5-f102-4a98-931d-1375c0266668' },\n      'e-CNPJ A3': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/339815af-afde-40af-8cb0-bf3054ae9fe3' },\n      'e-CNPJ A1': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/8749346c-aa72-42f7-8fb1-78153ee7a7fe' },\n      'e-CPF A3': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/62d1e0a3-a509-41b8-861b-f37f28a5dcda' },\n      'e-CPF A1': { certiid: 'https://parceiro.gestaoar.shop/arcertiid/shop/produto/4ee57e38-826b-4d5f-9efc-ffa76e51a803' }\n    }\n  };\n\n  // 5. SELEÇÃO E REGRA DA ISABELLA\n  const linksBase = LINK_MAPPINGS[vendorKey][ProdutoPadronizado] || LINK_MAPPINGS[vendorKey]['e-CNPJ A1'];\n  \n  // Garantimos que linkCertifastFinal seja string vazia se não existir no mapeamento\n  let linkCertifastFinal = linksBase.certifast || \"\";\n  \n  // Regra adicional: Isabella só manda CertiID\n  if (agente === 'Isabella') {\n    linkCertifastFinal = \"\"; \n  }\n\n  return {\n    json: {\n      ...item.json,\n      ProdutoPadronizado,\n      TipoCertificado: tipo,\n      NivelCertificado: nivel,\n      AgenteResponsavel: agente,\n      LinkCertifast: linkCertifastFinal,\n      LinkCertiid: linksBase.certiid,\n      VendorIdentificado: vendorKey,\n      DebugProdutoOriginal: rawProduto\n    }\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        128
+      ],
+      "id": "62372434-1f73-4997-8657-d2d43f6d7dcd",
+      "name": "Atribuir Link ao agente"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        368,
+        80
+      ],
+      "id": "fd36f3f3-2c23-4d86-aa34-061ccc034dcf",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ new Date($json['Data de Vencimento'].split('/').reverse().join('-')).toISOString().split('T')[0] }}",
+                    "rightValue": "={{ new Date(new Date().setDate(new Date().getDate() + 0)).toISOString().split('T')[0] }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7ef93cb6-1b4a-4fd1-85e6-9eb1aa4d401e"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Hoje"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1cf38cb2-bba3-4122-92b3-dcab08898bf7",
+                    "leftValue": "={{ new Date($json['Data de Vencimento'].split('/').reverse().join('-')).toISOString().split('T')[0] }}",
+                    "rightValue": "={{ new Date(new Date().setDate(new Date().getDate() + 5)).toISOString().split('T')[0] }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "=5 dias"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2b64a1bb-bd4c-4338-8e1c-7df59fce4434",
+                    "leftValue": "={{ new Date($json['Data de Vencimento'].split('/').reverse().join('-')).toISOString().split('T')[0] }}",
+                    "rightValue": "={{ new Date(new Date().setDate(new Date().getDate() + 10)).toISOString().split('T')[0] }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "10 dias"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "4326b020-1d5e-4cd9-83e6-73b77f8c8e69",
+                    "leftValue": "={{ new Date($json['Data de Vencimento'].split('/').reverse().join('-')).toISOString().split('T')[0] }}",
+                    "rightValue": "={{ new Date(new Date().setDate(new Date().getDate() + 20)).toISOString().split('T')[0] }}",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "20 dias"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        16,
+        80
+      ],
+      "id": "64860bac-65af-40f2-b3f2-24cd78cbd630",
+      "name": "Separador de datas1"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        112
+      ],
+      "id": "e02c99c4-796c-4081-aec7-7cabed7f8a49",
+      "name": "Disparo Automático1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const saida = $input.all().map(item => {\n  const json = item.json;\n\n  function normalizarTelefoneE164(telefone) {\n    if (!telefone) return '';\n    const digits = String(telefone).replace(/\\D/g, '');\n    if (/^55\\d{10,11}$/.test(digits)) return digits;\n    if (/^\\d{10,11}$/.test(digits)) return '55' + digits;\n    return '';\n  }\n\n  const cnpjLimpo = json.CNPJ ? String(json.CNPJ).replace(/\\D/g, '') : '';\n  const cpfLimpo = json.CPF ? String(json.CPF).replace(/\\D/g, '') : '';\n\n  let cpfMascarado = '';\n  if (cpfLimpo.length === 11) {\n    cpfMascarado = `${cpfLimpo.substring(0, 3)}.***.***-${cpfLimpo.substring(9, 11)}`;\n  }\n\n  const mapeamentoProdutos = {\n    'e-CPF A1': ['e-cpf a1', 'ecpf a1', 'e cpf a1'],\n    'e-CPF A3': ['e-cpf a3', 'ecpf a3', 'e cpf a3'],\n    'e-CNPJ A1': ['e-cnpj a1', 'ecnpj a1', 'e cnpj a1'],\n    'e-CNPJ A3': ['e-cnpj a3', 'ecnpj a3', 'e cnpj a3'],\n    'e-Jurídico A3': ['jurídico', 'juridico'],\n    'e-Saúde A3': ['saúde', 'saude'],\n    'OM-eCPF': ['om-ecpf', 'om ecpf'],\n  };\n\n  const nomeProdutoOriginal = json.Produto || '';\n  let produtoPadronizado = 'Não Identificado';\n  for (const [nomePadrao, palavras] of Object.entries(mapeamentoProdutos)) {\n    if (palavras.some(p => nomeProdutoOriginal.toLowerCase().includes(p))) {\n      produtoPadronizado = nomePadrao;\n      break;\n    }\n  }\n\n  const tipoCertificado = cnpjLimpo ? 'CNPJ' : 'CPF';\n\n  function toISO(dateAny) {\n    if (!dateAny) return '';\n    const s = String(dateAny).trim();\n    if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(s)) {\n      const [dd, mm, yyyy] = s.split('/');\n      return `${yyyy}-${mm}-${dd}`;\n    }\n    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s;\n    const p = new Date(s);\n    if (!isNaN(p.getTime())) {\n      const yyyy = p.getFullYear();\n      const mm = String(p.getMonth() + 1).padStart(2, '0');\n      const dd = String(p.getDate()).padStart(2, '0');\n      return `${yyyy}-${mm}-${dd}`;\n    }\n    return '';\n  }\n\n  const vencimentoISO = toISO(json[\"Data de Vencimento\"]);\n  const telefoneE164 = normalizarTelefoneE164(json.Telefone);\n  const primeiroNome = json.Cliente ? String(json.Cliente).split(' ')[0].toUpperCase() : '';\n\n  return {\n    json: {\n      ...json,\n      TelefoneNormalizado: telefoneE164,\n      CNPJ: cnpjLimpo,\n      CPF_Mascarado: cpfMascarado,\n      ProdutoPadronizado: produtoPadronizado,\n      PrimeiroNome: primeiroNome,\n      TipoCertificado: tipoCertificado,\n      UltimoContato: new Date().toISOString(),\n      VencimentoISO: vencimentoISO,\n    }\n  };\n});\n\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -288,
+        112
+      ],
+      "id": "de0487b4-ecd4-4ea7-ac8c-bf19893f15b7",
+      "name": "envia só os que irão vencer3"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1072,
+        -96
+      ],
+      "id": "44d3f841-ffd8-4717-8114-94154f9aa2a8",
+      "name": "When clicking ‘Execute workflow’",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const saida = $input.all().map(item => {\n  const json = item.json;\n\n  function normalizarTelefoneE164(telefone) {\n    if (!telefone) return '';\n    const digits = String(telefone).replace(/\\D/g, '');\n    if (/^55\\d{10,11}$/.test(digits)) return digits;\n    if (/^\\d{10,11}$/.test(digits)) return '55' + digits;\n    return '';\n  }\n\n  const cnpjLimpo = json.CNPJ ? String(json.CNPJ).replace(/\\D/g, '') : '';\n  const cpfLimpo = json.CPF ? String(json.CPF).replace(/\\D/g, '') : '';\n\n  let cpfMascarado = '';\n  if (cpfLimpo.length === 11) {\n    cpfMascarado = `${cpfLimpo.substring(0, 3)}.***.***-${cpfLimpo.substring(9, 11)}`;\n  }\n\n  const mapeamentoProdutos = {\n    'e-CPF A1': ['e-cpf a1', 'ecpf a1', 'e cpf a1'],\n    'e-CPF A3': ['e-cpf a3', 'ecpf a3', 'e cpf a3'],\n    'e-CNPJ A1': ['e-cnpj a1', 'ecnpj a1', 'e cnpj a1'],\n    'e-CNPJ A3': ['e-cnpj a3', 'ecnpj a3', 'e cnpj a3'],\n    'e-Jurídico A3': ['jurídico', 'juridico'],\n    'e-Saúde A3': ['saúde', 'saude'],\n    'OM-eCPF': ['om-ecpf', 'om ecpf'],\n  };\n\n  const nomeProdutoOriginal = json.Produto || '';\n  let produtoPadronizado = 'Não Identificado';\n  for (const [nomePadrao, palavras] of Object.entries(mapeamentoProdutos)) {\n    if (palavras.some(p => nomeProdutoOriginal.toLowerCase().includes(p))) {\n      produtoPadronizado = nomePadrao;\n      break;\n    }\n  }\n\n  const tipoCertificado = cnpjLimpo ? 'CNPJ' : 'CPF';\n\n  function toISO(dateAny) {\n    if (!dateAny) return '';\n    const s = String(dateAny).trim();\n    if (/^\\d{2}\\/\\d{2}\\/\\d{4}$/.test(s)) {\n      const [dd, mm, yyyy] = s.split('/');\n      return `${yyyy}-${mm}-${dd}`;\n    }\n    if (/^\\d{4}-\\d{2}-\\d{2}$/.test(s)) return s;\n    const p = new Date(s);\n    if (!isNaN(p.getTime())) {\n      const yyyy = p.getFullYear();\n      const mm = String(p.getMonth() + 1).padStart(2, '0');\n      const dd = String(p.getDate()).padStart(2, '0');\n      return `${yyyy}-${mm}-${dd}`;\n    }\n    return '';\n  }\n\n  const vencimentoISO = toISO(json[\"Data de Vencimento\"]);\n  const telefoneE164 = normalizarTelefoneE164(json.Telefone);\n  const primeiroNome = json.Cliente ? String(json.Cliente).split(' ')[0].toUpperCase() : '';\n\n  return {\n    json: {\n      ...json,\n      TelefoneNormalizado: telefoneE164,\n      CNPJ: cnpjLimpo,\n      CPF_Mascarado: cpfMascarado,\n      ProdutoPadronizado: produtoPadronizado,\n      PrimeiroNome: primeiroNome,\n      TipoCertificado: tipoCertificado,\n      UltimoContato: new Date().toISOString(),\n      VencimentoISO: vencimentoISO,\n    }\n  };\n});\n\nreturn saida;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -544,
+        112
+      ],
+      "id": "3a6acc20-11fe-4b6b-8c15-8dabf02cdb4b",
+      "name": "Converter Formato"
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "16jQDp9Pd6Ppc6dhoXryOPchv1o0t5UjIZ_KQsXP2f8o",
+          "mode": "list",
+          "cachedResultName": "RelatorioRenovacaoAnalitico",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16jQDp9Pd6Ppc6dhoXryOPchv1o0t5UjIZ_KQsXP2f8o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 626806006,
+          "mode": "list",
+          "cachedResultName": "relatorio",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/16jQDp9Pd6Ppc6dhoXryOPchv1o0t5UjIZ_KQsXP2f8o/edit#gid=626806006"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -800,
+        112
+      ],
+      "id": "eb726cb7-0806-46bf-b80d-6411cd6227f6",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleApi": {
+          "id": "zHV2P8lA5y4JLuEt",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.CNPJ }}",
+                    "rightValue": "CNPJ",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    },
+                    "id": "c8a627c9-6882-49d9-9a60-2368e631457f"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "e-CNPJ"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1a323afd-0cd1-41e3-a64e-edc3e0a57b0c",
+                    "leftValue": "={{ $json.CNPJ }}",
+                    "rightValue": "CPF",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "e-CPF"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        -256,
+        560
+      ],
+      "id": "df4f190c-6329-41e5-bc9e-db34d3ae03d9",
+      "name": "Chavear CPF/CNPJ",
+      "notesInFlow": false,
+      "alwaysOutputData": false,
+      "retryOnFail": false,
+      "executeOnce": false,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "mascara CPF": {
+      "main": [
+        [
+          {
+            "node": "Send Email  renova cpf",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email  renova cnpj": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Chavear CPF/CNPJ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email  renova cpf": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atribuir Link ao agente": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Separador de datas1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ],
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Disparo Automático1": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "envia só os que irão vencer3": {
+      "main": [
+        [
+          {
+            "node": "Separador de datas1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Converter Formato": {
+      "main": [
+        [
+          {
+            "node": "envia só os que irão vencer3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Converter Formato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Atribuir Link ao agente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chavear CPF/CNPJ": {
+      "main": [
+        [
+          {
+            "node": "Send Email  renova cnpj",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "mascara CPF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "cb2b01f0-5758-4b9b-903c-1bf4a9ddc3d0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c7c80362368f5797d33ff9abfd48f4da88cc2118b57c4bbe52975d23ba68e85"
+  },
+  "id": "LI6EipioasDoUYWY",
+  "tags": []
+}

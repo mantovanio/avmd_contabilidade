@@ -1,0 +1,242 @@
+====================================
+INSTRUÇÕES PARA USO DO MCP N8N
+====================================
+
+Este arquivo contém todas as instruções necessárias para configurar e usar o MCP (Model Context Protocol) para n8n, permitindo que agentes de IA interajam com a plataforma n8n.
+
+----------------------------------------
+CONTEÚDO DO PROJETO
+----------------------------------------
+
+1. n8n-mcp-tool-schema.json - Schema JSON da ferramenta MCP
+2. n8n-mcp-workflow.json - Workflow n8n que implementa o servidor MCP
+3. n8n-mcp-documentacao.md - Documentação detalhada
+4. README.md - Instruções simplificadas
+5. INSTRUCOES_MCP_N8N.txt - Este arquivo
+
+----------------------------------------
+GUIA DE INSTALAÇÃO PASSO A PASSO
+----------------------------------------
+
+1. IMPORTAR O WORKFLOW NO N8N:
+   - Abra sua instância n8n
+   - Vá para "Workflows"
+   - Clique em "Import from file" ou "Import from URL"
+   - Selecione o arquivo "n8n-mcp-workflow.json"
+   - Salve o workflow
+
+2. ATIVAR O WORKFLOW:
+   - No n8n, abra o workflow importado
+   - Clique no botão "Activate" para torná-lo ativo
+   - Anote a URL do webhook (geralmente será algo como https://seu-n8n.exemplo.com/webhook/mcp-tool)
+
+3. CONFIGURAR AUTENTICAÇÃO (OPCIONAL MAS RECOMENDADO):
+   - No nó Webhook, ative a autenticação básica
+   - Configure um usuário e senha
+   - Salve as alterações
+
+4. CONFIGURAR O CLIENTE MCP:
+
+   a) Para Claude/Claude Code:
+      - Configure um novo projeto MCP
+      - Adicione a URL do webhook como endpoint da ferramenta
+      - Use o schema do arquivo "n8n-mcp-tool-schema.json"
+      - Se configurou autenticação, adicione cabeçalhos de autenticação
+
+   b) Para Antigravity:
+      - Adicione a skill de MCP-tools-expert
+      - Configure a ferramenta apontando para o webhook
+      - Use as diretrizes de configuração fornecidas na skill
+
+   c) Para Cursor ou outros clientes MCP:
+      - Siga a documentação específica do cliente
+      - Aponte o URL para o webhook do n8n
+      - Utilize o schema do arquivo JSON fornecido
+
+5. TESTE A CONEXÃO:
+   - Envie uma requisição simples como:
+     {
+       "action": "search_nodes",
+       "query": "webhook"
+     }
+   - Verifique se recebe uma resposta adequada
+
+----------------------------------------
+AÇÕES DISPONÍVEIS
+----------------------------------------
+
+1. BUSCAR NÓS - search_nodes
+   Exemplo:
+   {
+     "action": "search_nodes",
+     "query": "webhook",
+     "includeExamples": true
+   }
+
+2. OBTER DETALHES DE UM NÓ - get_node
+   Exemplo:
+   {
+     "action": "get_node",
+     "nodeType": "n8n-nodes-base.httpRequest",
+     "detail": "standard",
+     "includeExamples": true
+   }
+
+3. VALIDAR CONFIGURAÇÃO DE NÓ - validate_node
+   Exemplo:
+   {
+     "action": "validate_node",
+     "nodeType": "n8n-nodes-base.webhook",
+     "config": {
+       "httpMethod": "POST",
+       "path": "incoming-data",
+       "options": {
+         "responseMode": "lastNode"
+       }
+     },
+     "mode": "full"
+   }
+
+4. BUSCAR TEMPLATES - search_templates
+   Exemplo:
+   {
+     "action": "search_templates",
+     "searchMode": "by_task",
+     "task": "webhook_processing"
+   }
+
+5. OBTER TEMPLATE - get_template
+   Exemplo:
+   {
+     "action": "get_template",
+     "templateId": "template-123"
+   }
+
+6. CRIAR WORKFLOW - create_workflow
+   Exemplo:
+   {
+     "action": "create_workflow",
+     "workflow": {
+       "name": "Meu Workflow",
+       "nodes": [...],
+       "connections": {...}
+     }
+   }
+
+7. ATUALIZAR WORKFLOW - update_workflow
+   Exemplo:
+   {
+     "action": "update_workflow",
+     "workflowId": "workflow-123",
+     "operations": [
+       {
+         "type": "addNode",
+         "node": {...}
+       }
+     ]
+   }
+
+8. EXECUTAR WORKFLOW - execute_workflow
+   Exemplo:
+   {
+     "action": "execute_workflow",
+     "workflowId": "workflow-123"
+   }
+
+----------------------------------------
+INSTRUÇÕES PARA CLAUDE/GPT
+----------------------------------------
+
+Quando estiver usando o MCP com Claude, GPT ou outro assistente de IA, você pode fornecer as seguintes instruções para obter melhores resultados:
+
+1. INSTRUÇÃO DE SISTEMA RECOMENDADA:
+
+"Você é um especialista em automação usando n8n com acesso à ferramenta MCP n8n. Use as ferramentas MCP para ajudar o usuário a criar, modificar e depurar fluxos de trabalho no n8n. Siga sempre estas práticas:
+
+1. Sempre busque nós adequados usando search_nodes antes de sugerir configurações
+2. Valide todas as configurações de nó com validate_node antes de finalizar
+3. Busque templates existentes com search_templates antes de criar do zero
+4. Configure explicitamente todos os parâmetros importantes nos nós
+5. Adicione tratamento de erros nos fluxos de trabalho
+6. Nunca confie em valores padrão; sempre defina explicitamente
+
+Execute as ferramentas de forma silenciosa e responda apenas após completar todas as operações necessárias."
+
+2. EXEMPLO DE REQUISIÇÃO AO CLAUDE:
+
+"Quero criar um fluxo de trabalho n8n que monitora um RSS feed e envia novas entradas para o Telegram. Pode me ajudar a configurar isso?"
+
+----------------------------------------
+BOAS PRÁTICAS DE SEGURANÇA
+----------------------------------------
+
+1. AMBIENTE DE DESENVOLVIMENTO:
+   - Nunca edite fluxos de trabalho de produção diretamente com IA
+   - Use uma instância de desenvolvimento separada para testes
+
+2. BACKUPS:
+   - Sempre exporte seus fluxos de trabalho importantes antes de modificá-los
+   - Mantenha um histórico de versões dos seus fluxos de trabalho
+
+3. VALIDAÇÃO:
+   - Use a funcionalidade de validação antes de implantar fluxos de trabalho
+   - Teste manualmente os fluxos de trabalho gerados por IA
+
+4. REVISÃO:
+   - Sempre revise os fluxos de trabalho gerados por IA antes de usá-los em produção
+   - Verifique especialmente configurações de API, credenciais e lógica de processamento
+
+5. CREDENCIAIS:
+   - Nunca compartilhe credenciais no corpo das requisições
+   - Utilize as credenciais gerenciadas do n8n
+
+----------------------------------------
+SOLUÇÃO DE PROBLEMAS COMUNS
+----------------------------------------
+
+1. ERRO "TIPO DE NÓ NÃO ENCONTRADO":
+   - Verifique o nome do tipo de nó, incluindo o prefixo correto (n8n-nodes-base)
+   - Confirme que o nó está disponível na sua instância do n8n
+
+2. ERRO "CAMPO OBRIGATÓRIO NÃO ENCONTRADO":
+   - Adicione todos os campos obrigatórios na configuração do nó
+   - Use o modo de validação "minimal" para identificar campos obrigatórios
+
+3. ERRO "AÇÃO NÃO IMPLEMENTADA":
+   - Verifique se está usando uma das ações suportadas
+   - Confirme se a sintaxe da ação está correta
+
+4. ERRO DE AUTENTICAÇÃO:
+   - Verifique as credenciais no cabeçalho da requisição
+   - Confirme que o nó Webhook está configurado corretamente
+
+5. FALHA NA CONEXÃO:
+   - Verifique se o workflow está ativo no n8n
+   - Confirme se o URL do webhook está correto
+   - Verifique se há firewalls ou proxies bloqueando as requisições
+
+----------------------------------------
+RECURSOS ADICIONAIS
+----------------------------------------
+
+1. DOCUMENTAÇÃO COMPLETA:
+   - Consulte o arquivo "n8n-mcp-documentacao.md" para detalhes
+
+2. REPOSITÓRIO ORIGINAL:
+   - https://github.com/czlonkowski/n8n-mcp
+
+3. DOCUMENTAÇÃO N8N:
+   - https://docs.n8n.io/
+
+4. GUIA DE EXPRESSÕES N8N:
+   - https://docs.n8n.io/code-examples/expressions/
+
+----------------------------------------
+CONTATO E SUPORTE
+----------------------------------------
+
+Se precisar de ajuda adicional:
+
+1. Consulte a documentação detalhada incluída neste pacote
+2. Visite o repositório GitHub n8n-mcp para recursos atualizados
+3. Participe da comunidade n8n para dúvidas específicas sobre nós e funcionalidades

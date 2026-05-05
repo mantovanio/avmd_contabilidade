@@ -1,0 +1,290 @@
+{
+  "name": "MCP n8n Tool",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "mcp-tool",
+        "options": {
+          "responseMode": "responseNode",
+          "rawBody": true
+        },
+        "authentication": "basicAuth",
+        "responseCode": 200
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "mcp-n8n-tool",
+      "credentials": {
+        "httpBasicAuth": {
+          "username": "{{PREENCHA_USERNAME_AQUI}}",
+          "password": "{{PREENCHA_PASSWORD_AQUI}}"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Extrai os dados da requisição MCP\nconst body = $input.item.json.body || $input.item.json;\nconst headers = $input.item.json.headers;\n\n// Verifica autenticação (se necessário)\n/* \nif (!headers || !headers.authorization) {\n  return {\n    error: true,\n    message: \"Autorização necessária\"\n  };\n}\n*/\n\n// Logs iniciais para debug\nconsole.log(\"MCP Request recebido:\", JSON.stringify(body, null, 2));\n\n// Extrai os parâmetros da ferramenta MCP\nconst { action } = body;\n\nif (!action) {\n  return {\n    error: true,\n    message: \"Parâmetro 'action' é obrigatório\"\n  };\n}\n\n// Define os dados de saída para processamento\nreturn {\n  action,\n  params: body,\n  timestamp: new Date().toISOString(),\n  instanceUrl: \"https://auto.mantovan.com.br/\"\n};"
+      },
+      "name": "Extrair Parâmetros MCP",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "search_nodes"
+            }
+          ]
+        }
+      },
+      "name": "Router por Ação",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Função para simular a busca de nós\nconst searchNodes = (query, includeExamples = true) => {\n  // Aqui seria implementada a lógica real de busca nos nós do n8n\n  // Esta é uma implementação simplificada para demonstração\n  \n  const nodes = [\n    {\n      name: \"HTTP Request\",\n      type: \"n8n-nodes-base.httpRequest\",\n      description: \"Faz requisições HTTP para qualquer API\",\n      version: 1,\n      group: [\"input\", \"output\"]\n    },\n    {\n      name: \"Webhook\",\n      type: \"n8n-nodes-base.webhook\",\n      description: \"Recebe requisições HTTP\",\n      version: 1,\n      group: [\"trigger\"]\n    },\n    {\n      name: \"Function\",\n      type: \"n8n-nodes-base.function\",\n      description: \"Executa código JavaScript personalizado\",\n      version: 1,\n      group: [\"transform\"]\n    },\n    {\n      name: \"Set\",\n      type: \"n8n-nodes-base.set\",\n      description: \"Define valores nos itens de dados\",\n      version: 1,\n      group: [\"transform\"]\n    }\n  ];\n  \n  // Filtra os nós pela query\n  const filtered = query \n    ? nodes.filter(node => \n        node.name.toLowerCase().includes(query.toLowerCase()) || \n        node.description.toLowerCase().includes(query.toLowerCase()) ||\n        node.type.toLowerCase().includes(query.toLowerCase()))\n    : nodes;\n    \n  // Adiciona exemplos se solicitado\n  if (includeExamples) {\n    return filtered.map(node => ({\n      ...node,\n      examples: [\n        {\n          name: \"Exemplo básico\",\n          config: getExampleConfig(node.type)\n        }\n      ]\n    }));\n  }\n  \n  return filtered;\n};\n\n// Função para obter configurações de exemplo\nconst getExampleConfig = (nodeType) => {\n  const examples = {\n    \"n8n-nodes-base.httpRequest\": {\n      url: \"https://auto.mantovan.com.br/api/data\",\n      method: \"GET\",\n      authentication: \"none\",\n      options: {}\n    },\n    \"n8n-nodes-base.webhook\": {\n      httpMethod: \"POST\",\n      path: \"webhook-path\",\n      options: {\n        responseMode: \"onReceived\"\n      }\n    },\n    \"n8n-nodes-base.function\": {\n      functionCode: \"return items;\"\n    },\n    \"n8n-nodes-base.set\": {\n      values: {\n        number: [\n          {\n            name: \"id\",\n            value: \"={{ $json.id }}\"\n          }\n        ],\n        string: [\n          {\n            name: \"status\",\n            value: \"completed\"\n          }\n        ]\n      }\n    }\n  };\n  \n  return examples[nodeType] || {};\n};\n\n// Extrai os parâmetros da requisição\nconst { query, includeExamples = true } = $input.item.json.params;\n\n// Executa a busca\nconst results = searchNodes(query, includeExamples);\n\n// Retorna os resultados\nreturn {\n  success: true,\n  results,\n  count: results.length,\n  query,\n  instanceUrl: \"https://auto.mantovan.com.br/\"\n};"
+      },
+      "name": "Processar search_nodes",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        850,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "get_node"
+            }
+          ]
+        }
+      },
+      "name": "Router por Ação1",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Função para obter informações detalhadas sobre um nó\nconst getNode = (nodeType, detail = 'standard', includeExamples = true, mode = null) => {\n  // Aqui seria implementada a lógica real para buscar informações do nó\n  // Esta é uma implementação simplificada para demonstração\n  \n  const nodeInfo = {\n    \"n8n-nodes-base.httpRequest\": {\n      name: \"HTTP Request\",\n      type: \"n8n-nodes-base.httpRequest\",\n      description: \"Faz requisições HTTP para qualquer API\",\n      version: 1,\n      group: [\"input\", \"output\"],\n      properties: [\n        {\n          displayName: \"URL\",\n          name: \"url\",\n          type: \"string\",\n          default: \"\",\n          required: true,\n          description: \"URL para fazer a requisição\"\n        },\n        {\n          displayName: \"Método\",\n          name: \"method\",\n          type: \"options\",\n          options: [\n            { name: \"GET\", value: \"GET\" },\n            { name: \"POST\", value: \"POST\" },\n            { name: \"PUT\", value: \"PUT\" },\n            { name: \"DELETE\", value: \"DELETE\" },\n            { name: \"HEAD\", value: \"HEAD\" },\n            { name: \"OPTIONS\", value: \"OPTIONS\" },\n            { name: \"PATCH\", value: \"PATCH\" }\n          ],\n          default: \"GET\",\n          description: \"Método HTTP para a requisição\"\n        },\n        {\n          displayName: \"Autenticação\",\n          name: \"authentication\",\n          type: \"options\",\n          options: [\n            { name: \"Nenhuma\", value: \"none\" },\n            { name: \"Básica\", value: \"basicAuth\" },\n            { name: \"Header\", value: \"headerAuth\" },\n            { name: \"OAuth2\", value: \"oAuth2\" },\n            { name: \"Digest\", value: \"digestAuth\" }\n          ],\n          default: \"none\",\n          description: \"Método de autenticação\"\n        }\n      ],\n      docs: {\n        url: \"https://docs.n8n.io/integrations/built-in/core-nodes/n8n-nodes-base.httprequest/\",\n        content: \"# HTTP Request\\n\\nO nó HTTP Request permite fazer requisições HTTP para qualquer API...\"\n      }\n    },\n    \"n8n-nodes-base.webhook\": {\n      name: \"Webhook\",\n      type: \"n8n-nodes-base.webhook\",\n      description: \"Recebe requisições HTTP\",\n      version: 1,\n      group: [\"trigger\"],\n      properties: [\n        {\n          displayName: \"Método HTTP\",\n          name: \"httpMethod\",\n          type: \"options\",\n          options: [\n            { name: \"GET\", value: \"GET\" },\n            { name: \"POST\", value: \"POST\" },\n            { name: \"HEAD\", value: \"HEAD\" },\n            { name: \"OPTIONS\", value: \"OPTIONS\" }\n          ],\n          default: \"POST\",\n          description: \"Método HTTP a ser aceito\"\n        },\n        {\n          displayName: \"Caminho\",\n          name: \"path\",\n          type: \"string\",\n          default: \"\",\n          required: true,\n          description: \"Caminho para o webhook (exemplo: webhook)\"\n        },\n        {\n          displayName: \"Modo de Resposta\",\n          name: \"options.responseMode\",\n          type: \"options\",\n          options: [\n            { name: \"Ao Receber\", value: \"onReceived\" },\n            { name: \"Nó de Resposta\", value: \"responseNode\" },\n            { name: \"Último Nó\", value: \"lastNode\" }\n          ],\n          default: \"onReceived\",\n          description: \"Como e quando enviar a resposta\"\n        }\n      ],\n      docs: {\n        url: \"https://docs.n8n.io/integrations/built-in/core-nodes/n8n-nodes-base.webhook/\",\n        content: \"# Webhook\\n\\nO nó Webhook permite receber dados via HTTP request...\"\n      }\n    }\n  };\n  \n  // Verifica se o nó existe\n  if (!nodeInfo[nodeType]) {\n    return {\n      error: true,\n      message: `Tipo de nó ${nodeType} não encontrado`\n    };\n  }\n  \n  // Obtém informação do nó\n  const node = nodeInfo[nodeType];\n  \n  // Se o modo for 'docs', retorna apenas a documentação\n  if (mode === 'docs') {\n    return {\n      name: node.name,\n      type: node.type,\n      docs: node.docs.content\n    };\n  }\n  \n  // Se o modo for 'search_properties', implementaria a busca de propriedades específicas aqui\n  \n  // Ajusta o nível de detalhes\n  let result = { ...node };\n  \n  if (detail === 'minimal') {\n    // Versão minimal contém apenas metadados básicos\n    const { name, type, description, version, group } = node;\n    result = { name, type, description, version, group };\n  }\n  \n  // Adiciona exemplos se solicitado\n  if (includeExamples) {\n    result.examples = [\n      {\n        name: \"Exemplo básico\",\n        config: getExampleConfig(nodeType)\n      }\n    ];\n  }\n  \n  return result;\n};\n\n// Função para obter configurações de exemplo\nconst getExampleConfig = (nodeType) => {\n  const examples = {\n    \"n8n-nodes-base.httpRequest\": {\n      url: \"https://auto.mantovan.com.br/api/data\",\n      method: \"GET\",\n      authentication: \"none\",\n      options: {}\n    },\n    \"n8n-nodes-base.webhook\": {\n      httpMethod: \"POST\",\n      path: \"webhook-path\",\n      options: {\n        responseMode: \"onReceived\"\n      }\n    }\n  };\n  \n  return examples[nodeType] || {};\n};\n\n// Extrai os parâmetros da requisição\nconst { nodeType, detail = 'standard', includeExamples = true, mode = null } = $input.item.json.params;\n\n// Obtém as informações do nó\nconst result = getNode(nodeType, detail, includeExamples, mode);\n\n// Retorna o resultado\nreturn {\n  success: !result.error,\n  ...result,\n  instanceUrl: \"https://auto.mantovan.com.br/\"\n};"
+      },
+      "name": "Processar get_node",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.action }}",
+              "value2": "validate_node"
+            }
+          ]
+        }
+      },
+      "name": "Router por Ação2",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Função para validar a configuração de um nó\nconst validateNode = (nodeType, config, mode = 'minimal', profile = 'runtime') => {\n  // Aqui seria implementada a lógica real de validação\n  // Esta é uma implementação simplificada para demonstração\n  \n  // Define as regras de validação por tipo de nó\n  const validationRules = {\n    \"n8n-nodes-base.httpRequest\": {\n      required: ['url', 'method', 'authentication'],\n      rules: {\n        url: {\n          type: 'string',\n          required: true,\n          minLength: 5,\n          startsWith: 'http'\n        },\n        method: {\n          type: 'string',\n          enum: ['GET', 'POST', 'PUT', 'DELETE', 'HEAD', 'OPTIONS', 'PATCH']\n        },\n        authentication: {\n          type: 'string',\n          enum: ['none', 'basicAuth', 'headerAuth', 'oAuth2', 'digestAuth']\n        }\n      }\n    },\n    \"n8n-nodes-base.webhook\": {\n      required: ['httpMethod', 'path'],\n      rules: {\n        httpMethod: {\n          type: 'string',\n          enum: ['GET', 'POST', 'HEAD', 'OPTIONS']\n        },\n        path: {\n          type: 'string',\n          required: true,\n          minLength: 1,\n          pattern: '^[a-zA-Z0-9-_/]+$'\n        },\n        'options.responseMode': {\n          type: 'string',\n          enum: ['onReceived', 'responseNode', 'lastNode']\n        }\n      }\n    }\n  };\n  \n  // Verifica se o tipo de nó é suportado\n  if (!validationRules[nodeType]) {\n    return {\n      error: true,\n      message: `Tipo de nó ${nodeType} não suportado para validação`\n    };\n  }\n  \n  const rules = validationRules[nodeType];\n  const errors = [];\n  \n  // Modo minimal: verifica apenas campos obrigatórios\n  if (mode === 'minimal') {\n    // Verifica campos obrigatórios\n    for (const field of rules.required) {\n      if (!hasNestedProperty(config, field)) {\n        errors.push(`Campo obrigatório '${field}' não encontrado`);\n      }\n    }\n  }\n  // Modo full: validação completa\n  else if (mode === 'full') {\n    // Verifica campos obrigatórios\n    for (const field of rules.required) {\n      if (!hasNestedProperty(config, field)) {\n        errors.push(`Campo obrigatório '${field}' não encontrado`);\n        continue;\n      }\n      \n      // Verifica regras específicas para cada campo\n      const value = getNestedProperty(config, field);\n      const fieldRules = rules.rules[field];\n      \n      if (fieldRules) {\n        // Verifica tipo\n        if (fieldRules.type && typeof value !== fieldRules.type) {\n          errors.push(`Campo '${field}' deve ser do tipo ${fieldRules.type}`);\n        }\n        \n        // Verifica enum\n        if (fieldRules.enum && !fieldRules.enum.includes(value)) {\n          errors.push(`Campo '${field}' deve ser um dos seguintes valores: ${fieldRules.enum.join(', ')}`);\n        }\n        \n        // Verifica tamanho mínimo para strings\n        if (fieldRules.minLength && typeof value === 'string' && value.length < fieldRules.minLength) {\n          errors.push(`Campo '${field}' deve ter pelo menos ${fieldRules.minLength} caracteres`);\n        }\n        \n        // Verifica prefixo para strings\n        if (fieldRules.startsWith && typeof value === 'string' && !value.startsWith(fieldRules.startsWith)) {\n          errors.push(`Campo '${field}' deve começar com '${fieldRules.startsWith}'`);\n        }\n        \n        // Verifica padrão regex\n        if (fieldRules.pattern && typeof value === 'string') {\n          const regex = new RegExp(fieldRules.pattern);\n          if (!regex.test(value)) {\n            errors.push(`Campo '${field}' não corresponde ao padrão esperado`);\n          }\n        }\n      }\n    }\n    \n    // Verificações adicionais baseadas no perfil\n    if (profile === 'ai-friendly') {\n      // Verifica URL com variáveis dinâmicas não resolvidas\n      if (nodeType === 'n8n-nodes-base.httpRequest' && typeof config.url === 'string') {\n        if (config.url.includes('{{') && config.url.includes('}}')) {\n          errors.push('URL contém expressões que podem não ser resolvidas pelo AI');\n        }\n      }\n    }\n    \n    if (profile === 'strict') {\n      // Adiciona validações mais rigorosas aqui\n    }\n  }\n  \n  // Retorna o resultado da validação\n  const success = errors.length === 0;\n  \n  return {\n    valid: success,\n    errors: errors.length > 0 ? errors : undefined,\n    warnings: [],  // Aqui colocaria avisos não críticos\n    fixes: success ? undefined : getFixSuggestions(nodeType, config, errors)\n  };\n};\n\n// Função auxiliar para verificar a existência de propriedades aninhadas\nfunction hasNestedProperty(obj, path) {\n  if (!obj || typeof obj !== 'object') return false;\n  \n  const parts = path.split('.');\n  let current = obj;\n  \n  for (const part of parts) {\n    if (!current || typeof current !== 'object' || !(part in current)) {\n      return false;\n    }\n    current = current[part];\n  }\n  \n  return true;\n}\n\n// Função auxiliar para obter o valor de propriedades aninhadas\nfunction getNestedProperty(obj, path) {\n  if (!obj || typeof obj !== 'object') return undefined;\n  \n  const parts = path.split('.');\n  let current = obj;\n  \n  for (const part of parts) {\n    if (!current || typeof current !== 'object' || !(part in current)) {\n      return undefined;\n    }\n    current = current[part];\n  }\n  \n  return current;\n}\n\n// Função para sugerir correções\nfunction getFixSuggestions(nodeType, config, errors) {\n  const fixes = {};\n  \n  // Exemplos de correções para erros comuns\n  if (nodeType === 'n8n-nodes-base.httpRequest') {\n    // Corrige URLs sem protocolo\n    if (config.url && typeof config.url === 'string' && !config.url.startsWith('http')) {\n      fixes.url = `https://${config.url}`;\n    }\n    \n    // Corrige método HTTP não especificado\n    if (!config.method) {\n      fixes.method = 'GET';\n    }\n    \n    // Corrige autenticação não especificada\n    if (!config.authentication) {\n      fixes.authentication = 'none';\n    }\n  }\n  \n  else if (nodeType === 'n8n-nodes-base.webhook') {\n    // Corrige caminho vazio\n    if (!config.path || config.path.trim() === '') {\n      fixes.path = 'webhook';\n    }\n  }\n  \n  return Object.keys(fixes).length > 0 ? fixes : undefined;\n}\n\n// Extrai os parâmetros da requisição\nconst { nodeType, config, mode = 'minimal', profile = 'runtime' } = $input.item.json.params;\n\n// Valida a configuração do nó\nconst result = validateNode(nodeType, config, mode, profile);\n\n// Retorna o resultado\nreturn {\n  success: true,\n  validation: result,\n  instanceUrl: \"https://auto.mantovan.com.br/\"\n};"
+      },
+      "name": "Processar validate_node",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Função genérica para processar outros tipos de ações\nconst processGenericAction = () => {\n  const { action, params } = $input.item.json;\n  \n  // Aqui implementaria a lógica para outras ações\n  // Esta é uma resposta genérica para demonstração\n  \n  return {\n    success: false,\n    message: `Ação '${action}' não implementada ainda`,\n    params,\n    instanceUrl: \"https://auto.mantovan.com.br/\"\n  };\n};\n\n// Processa a ação genérica\nconst result = processGenericAction();\n\n// Retorna o resultado\nreturn result;"
+      },
+      "name": "Processar Outras Ações",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "={\n  \"body\": {\n    \"success\": {{ $json.success || false }},\n    \"action\": \"{{ $json.action }}\",\n    \"timestamp\": \"{{ $json.timestamp || $now }}\",\n    \"instanceUrl\": \"{{ $json.instanceUrl || 'https://auto.mantovan.com.br/' }}\",\n    \"data\": {{ $json.results || $json.validation || $json.message || $json }}\n  }\n}",
+        "options": {}
+      },
+      "name": "Formatar Resposta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1450,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extrair Parâmetros MCP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extrair Parâmetros MCP": {
+      "main": [
+        [
+          {
+            "node": "Router por Ação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router por Ação": {
+      "main": [
+        [
+          {
+            "node": "Processar search_nodes",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Router por Ação1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router por Ação1": {
+      "main": [
+        [
+          {
+            "node": "Processar get_node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Router por Ação2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Router por Ação2": {
+      "main": [
+        [
+          {
+            "node": "Processar validate_node",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Processar Outras Ações",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar search_nodes": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar get_node": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar validate_node": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Processar Outras Ações": {
+      "main": [
+        [
+          {
+            "node": "Formatar Resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {},
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-04-23T12:00:00.000Z",
+  "versionId": "1"
+}

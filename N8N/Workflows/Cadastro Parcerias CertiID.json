@@ -1,0 +1,229 @@
+{
+  "name": "Cadastro Parcerias CertiID",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cadastro-parcerias",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://certiid.com.br, https://www.certiid.com.br"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -128,
+        0
+      ],
+      "id": "bc7c540c-7c7b-4aef-98fa-12174a48406b",
+      "name": "Webhook",
+      "webhookId": "55bf7cc3-17bb-42b1-a43f-5e26830c6801"
+    },
+    {
+      "parameters": {
+        "jsCode": "const b = ($json.body && Object.keys($json.body).length) ? $json.body : $json;\n\n// Usamos tags HTML para formatar o e-mail\nconst htmlLinhas = [\n  `Olá,`,\n  `<br><br>`,\n  `Recebemos um novo envio do formulário de parcerias. Seguem abaixo as informações coletadas para que você possa criar o cadastro posteriormente no sistema.`,\n  `<br><br>`,\n  `<strong>DADOS DO CADASTRO</strong>`,\n  `Tipo de parceria: ${b.tipoParceria || ''}`,\n  `Nome completo: ${b.nome || ''}`,\n  `CPF: ${b.cpf || ''}`,\n  `Data de nascimento: ${b.nascimento || ''}`,\n  `E-mail: ${b.email || ''}`,\n  `WhatsApp: ${b.whatsapp || ''}`,\n  `Cidade/UF: ${b.cidade || ''} / ${b.uf || ''}`,\n  `<br><br>`,\n  `<strong>DADOS DA EMPRESA (se aplicável)</strong>`,\n  `CNPJ: ${b.cnpj || ''}`,\n  `Razão social: ${b.razao || ''}`,\n  `<br><br>`,\n  `<strong>PERFIL / OPERAÇÃO</strong>`,\n  `Já atua na área: ${b.jaAtua || ''}`,\n  `Já foi AGR: ${b.jaFoiAgr || ''}`,\n  `Realiza vendas: ${b.vendas || ''}`,\n  `Área de atuação: ${b.area || ''}`,\n  `Possui CNPJ: ${b.cnpjTem || ''}`,\n  `Regime tributário: ${b.regime || ''}`,\n  `Modelo: ${b.modelo || ''}`,\n  `Disponibilidade: ${b.disponibilidade || ''}`,\n  `Captação: ${b.captacao || ''}`,\n  `Volume estimado: ${b.volume || ''}`,\n  `Observações: ${b.observacoes || ''}`,\n  `<br><br>`,\n  `<strong>CONFORMIDADE E ORIGEM</strong>`,\n  `LGPD aceito: ${b.lgpd ? 'SIM' : 'NÃO'}`,\n  `Origem: ${b.origem || ''}`,\n  `Timestamp do formulário: ${b.timestamp || ''}`,\n  `<br><br>`,\n  `<strong>Ações sugeridas</strong><br>1) Criar/atualizar o cadastro no sistema com os dados acima.<br>2) Retornar contato para o lead se necessário.`,\n  `<br><br>`,\n  `—<br>Mensagem automática (formulário de parcerias)`\n];\n\n// Juntamos as linhas com a tag de quebra de linha do HTML\nconst htmlBody = htmlLinhas.join('<br>');\n\n// Para o WhatsApp, mantemos o texto simples sem HTML\nconst plainText = htmlBody.replace(/<br>/g, '\\n').replace(/<strong>/g, '').replace(/<\\/strong>/g, '');\n\nreturn [{\n  json: {\n    subject: `Novo cadastro parceria - ${b.nome || 'Sem nome'}`,\n    emailHtmlBody: htmlBody, // Corpo do e-mail em HTML\n    whatsappText: plainText, // Texto simples para o WhatsApp\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        0
+      ],
+      "id": "394c871c-362e-47db-b1ba-ded18d29d23e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {
+          "responseCode": 200,
+          "responseKey": "={\"ok\": true, \"message\": \"Cadastro recebido\"}"
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        576,
+        0
+      ],
+      "id": "f5797ea0-28be-4050-b998-c6dd1ab8f902",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Webhook').item.json.body.email }}",
+        "toEmail": "contato@certiid.com.br",
+        "subject": "Novo cadastro de parceria — informações coletadas para registro",
+        "html": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 20px auto; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }\n        .header { background-color: #f8f9fa; padding: 20px; border-bottom: 2px solid #007bff; }\n        .content { padding: 20px; }\n        .section-title { font-weight: bold; text-transform: uppercase; color: #007bff; margin-top: 20px; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }\n        .info-row { margin-bottom: 8px; }\n        .label { font-weight: bold; color: #555; }\n        .footer { background-color: #f8f9fa; padding: 15px; font-size: 12px; color: #777; text-align: center; }\n        .badge { background: #e7f3ff; color: #007bff; padding: 2px 8px; border-radius: 4px; font-weight: bold; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h2 style=\"margin:0;\">Novo Envio de Formulário</h2>\n            <p style=\"margin:5px 0 0 0;\">Parcerias Recebidas</p>\n        </div>\n        \n        <div class=\"content\">\n            <p>Olá,</p>\n            <p>Recebemos um novo envio do formulário de parcerias. Seguem abaixo as informações coletadas para que você possa criar o cadastro posteriormente no sistema.</p>\n\n            <div class=\"section-title\">DADOS DO CADASTRO</div>\n            <div class=\"info-row\"><span class=\"label\">Tipo de parceria:</span> <span class=\"badge\">{{ $('Webhook').item.json.body.tipoParceria }}</span></div>\n            <div class=\"info-row\"><span class=\"label\">Nome completo:</span> {{ $('Webhook').item.json.body.nome }}</div>\n            <div class=\"info-row\"><span class=\"label\">CPF:</span> {{ $('Webhook').item.json.body.cpf }}</div>\n            <div class=\"info-row\"><span class=\"label\">Data de nascimento:</span> {{ $('Webhook').item.json.body.nascimento }}</div>\n            <div class=\"info-row\"><span class=\"label\">E-mail:</span> {{ $('Webhook').item.json.body.email }}</div>\n            <div class=\"info-row\"><span class=\"label\">WhatsApp:</span> {{ $('Webhook').item.json.body.whatsapp }}</div>\n            <div class=\"info-row\"><span class=\"label\">Cidade/UF:</span> {{ $('Webhook').item.json.body.cidade }} / {{ $('Webhook').item.json.body.uf }}</div>\n\n            <div class=\"section-title\">DADOS DA EMPRESA</div>\n            <div class=\"info-row\"><span class=\"label\">CNPJ:</span> {{ $('Webhook').item.json.body.cnpj }}</div>\n            <div class=\"info-row\"><span class=\"label\">Razão social:</span> {{ $('Webhook').item.json.body.razao }}</div>\n\n            <div class=\"section-title\">PERFIL / OPERAÇÃO</div>\n            <div class=\"info-row\"><span class=\"label\">Já atua na área:</span> {{ $('Webhook').item.json.body.jaAtua }}</div>\n            <div class=\"info-row\"><span class=\"label\">Já foi AGR:</span> {{ $('Webhook').item.json.body.jaFoiAgr }}</div>\n            <div class=\"info-row\"><span class=\"label\">Realiza vendas:</span> {{ $('Webhook').item.json.body.vendas }}</div>\n            <div class=\"info-row\"><span class=\"label\">Possui CNPJ:</span> {{ $('Webhook').item.json.body.cnpjTem }}</div>\n            <div class=\"info-row\"><span class=\"label\">Regime tributário:</span> {{ $('Webhook').item.json.body.regime }}</div>\n            <div class=\"info-row\"><span class=\"label\">Modelo:</span> {{ $('Webhook').item.json.body.modelo }}</div>\n            <div class=\"info-row\"><span class=\"label\">Disponibilidade:</span> </div>\n            <div class=\"info-row\"><span class=\"label\">Captação:</span> {{ $('Webhook').item.json.body.captacao }} </div>\n            <div class=\"info-row\"><span class=\"label\">Volume estimado:</span> </div>\n            <div class=\"info-row\"><span class=\"label\">Observações:</span> <br><em>{{ $('Webhook').item.json.body.observacoes }}}</em></div>\n\n            <div class=\"section-title\">CONFORMIDADE E ORIGEM</div>\n            <div class=\"info-row\"><span class=\"label\">LGPD aceito:</span> {{ $('Webhook').item.json.body.lgpd }}</div>\n            <div class=\"info-row\"><span class=\"label\">Origem:</span> {{ $('Webhook').item.json.body.origem }}</div>\n            <div class=\"info-row\"><span class=\"label\">Timestamp:</span> {{ $('Webhook').item.json.body.timestamp }}</div>\n\n            <div style=\"margin-top: 30px; padding: 15px; background: #fffde7; border-left: 5px solid #fbc02d;\">\n                <strong>Ações sugeridas:</strong>\n                <ul style=\"margin: 5px 0;\">\n                    <li>Criar/atualizar o cadastro no sistema com os dados acima.</li>\n                    <li>Retornar contato para o lead se necessário.</li>\n                </ul>\n            </div>\n        </div>\n\n        <div class=\"footer\">\n            Mensagem automática gerada pelo n8n • Formulário de Parcerias\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        304,
+        0
+      ],
+      "id": "3644c634-e873-4ac4-8f25-badffb6b03ac",
+      "name": "Send email",
+      "webhookId": "097008ba-a550-4c8b-bbc1-b8f850f0e07e",
+      "credentials": {
+        "smtp": {
+          "id": "6e47pVwT4AGiQadz",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "atendimento",
+        "remoteJid": "=5511983500019",
+        "messageText": "=Novo formulário de *PARCERIA* recebido no e-mail - *Dar Andamento*",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        784,
+        0
+      ],
+      "id": "e30b56ec-0344-4b6e-949c-6836eb035361",
+      "name": "Avisa AGR e-CNPJ",
+      "credentials": {
+        "evolutionApi": {
+          "id": "Ndfp6z7ZuSCa2Egw",
+          "name": "atendimento"
+        }
+      },
+      "onError": "continueErrorOutput"
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "webhook.mantovan.com.br",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+            "content-length": "513",
+            "accept": "*/*",
+            "accept-encoding": "gzip, deflate, br, zstd",
+            "accept-language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7,zh-TW;q=0.6,zh-CN;q=0.5,zh;q=0.4",
+            "content-type": "application/json",
+            "origin": "https://certiid.com.br",
+            "priority": "u=1, i",
+            "referer": "https://certiid.com.br/",
+            "sec-ch-ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Google Chrome\";v=\"144\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "190.171.74.176",
+            "x-forwarded-host": "webhook.mantovan.com.br",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "67a0868b1b6e",
+            "x-real-ip": "190.171.74.176"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "tipoParceria": "contabilidade",
+            "nome": "ALEXANDRE APARECIDO MANTOVAN",
+            "cpf": "12461063885",
+            "nascimento": "1971-10-13",
+            "email": "alexandre@certifast.com.br",
+            "whatsapp": "11983500019",
+            "cidade": "São Bernardo Do Campo",
+            "uf": "SP",
+            "jaAtua": "sim",
+            "jaFoiAgr": "sim",
+            "vendas": "sim",
+            "area": "correspondente",
+            "cnpjTem": "sim",
+            "cnpj": "20776537000155",
+            "razao": "Certifast",
+            "regime": "mei",
+            "modelo": "",
+            "captacao": [
+              "",
+              "",
+              ""
+            ],
+            "observacoes": "teste de envio",
+            "lgpd": true,
+            "timestamp": "2026-02-07T00:30:47.719Z",
+            "origem": "form_html_certiid"
+          },
+          "webhookUrl": "https://webhook.mantovan.com.br/webhook/cadastro-parcerias",
+          "executionMode": "production"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Avisa AGR e-CNPJ",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "de3c2063-9165-4423-91a6-6b1ce61d2eda",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "2c7c80362368f5797d33ff9abfd48f4da88cc2118b57c4bbe52975d23ba68e85"
+  },
+  "id": "k2k8FmACx3VQs10jhR5Hn",
+  "tags": []
+}
