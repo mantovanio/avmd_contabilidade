@@ -6,6 +6,8 @@ import { RegisterForm } from './components/auth/RegisterForm';
 import Dashboard from './components/dashboard/Dashboard';
 import { LeadDetails } from './components/leads/LeadDetails';
 import { ServicosContabeis } from './components/servicos/ServicosContabeis';
+import { AppLayout } from './components/layout/AppLayout';
+import { KanbanBoard } from './components/kanban';
 import './index.css';
 
 function App() {
@@ -51,15 +53,19 @@ function App() {
         {/* Protected Routes */}
         <Route 
           path="/dashboard" 
-          element={user ? <Dashboard /> : <Navigate to="/login" replace />} 
+          element={user ? <AppLayout><Dashboard /></AppLayout> : <Navigate to="/login" replace />} 
+        />
+        <Route 
+          path="/kanban" 
+          element={user ? <AppLayout><KanbanBoard /></AppLayout> : <Navigate to="/login" replace />} 
         />
         <Route
           path="/lead/:id"
-          element={user ? <LeadDetails /> : <Navigate to="/login" replace />}
+          element={user ? <AppLayout><LeadDetails /></AppLayout> : <Navigate to="/login" replace />}
         />
         <Route
           path="/servicos"
-          element={user ? <ServicosContabeis /> : <Navigate to="/login" replace />}
+          element={user ? <AppLayout><ServicosContabeis /></AppLayout> : <Navigate to="/login" replace />}
         />
 
         {/* Default Route */}

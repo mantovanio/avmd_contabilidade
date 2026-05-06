@@ -134,6 +134,13 @@ export default function Dashboard() {
           </div>
           <div className="flex items-center gap-4">
             <Link
+              to="/kanban"
+              className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-900 transition hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+            >
+              <LayoutGrid size={18} />
+              Kanban
+            </Link>
+            <Link
               to="/servicos"
               className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               title="Serviços Contábeis"
