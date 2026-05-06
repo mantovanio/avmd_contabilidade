@@ -1,0 +1,22 @@
+version: '3.8'
+services:
+  avmd-contabil:
+    image: mantovanio/avmd-contabil:latest
+    restart: always
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.avmd-contabil.rule=Host(`contabil.mantovan.com.br`)"
+        - "traefik.http.routers.avmd-contabil.entrypoints=websecure"
+        - "traefik.http.routers.avmd-contabil.tls.certresolver=letsencryptresolver"
+        - "traefik.http.routers.avmd-contabil.service=avmd-contabil"
+        - "traefik.http.services.avmd-contabil.loadbalancer.server.port=80"
+        - "traefik.docker.network=minha_rede"
+    networks:
+      - minha_rede
+
+networks:
+  minha_rede:
+    external: true
+    name: minha_rede
