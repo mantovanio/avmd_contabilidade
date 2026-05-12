@@ -1,21 +1,33 @@
+# docker-compose.yml — PRODUCAO (VPS)
+# Uso: docker compose up --build -d
+# Context: pasta web-app/
+# Rede: certiid_rede (overlay attachable, compartilhada com Traefik)
+# Deploy automatico via GitHub Actions ao fazer push em master
+
 version: '3.8'
+
 services:
-  avmd-contabil:
-    image: mantovanio/avmd-contabil:latest
+  certiid-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: certiid-web:latest
     restart: always
-    deploy:
-      replicas: 1
-      labels:
-        - "traefik.enable=true"
-        - "traefik.http.routers.avmd-contabil.rule=Host(`contabil.mantovan.com.br`)"
-        - "traefik.http.routers.avmd-contabil.entrypoints=websecure"
-        - "traefik.http.routers.avmd-contabil.tls.certresolver=letsencryptresolver"
-        - "traefik.http.services.avmd-contabil.loadbalancer.server.port=80"
-        - "traefik.docker.network=renova-app_web-public"
+    container_name: certiid-web-app
+    environment:
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
     networks:
-      - web-public
+      - certiid_rede
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.certiid.rule=Host(`certiid.mantovan.com.br`)"
+      - "traefik.http.routers.certiid.entrypoints=websecure"
+      - "traefik.http.routers.certiid.tls=true"
+      - "traefik.http.routers.certiid.tls.certresolver=letsencryptresolver"
+      - "traefik.http.services.certiid.loadbalancer.server.port=80"
+      - "traefik.docker.network=certiid_rede"
+
 networks:
-  web-public:
+  certiid_rede:
     external: true
-    name: renova-app_web-public
-  
