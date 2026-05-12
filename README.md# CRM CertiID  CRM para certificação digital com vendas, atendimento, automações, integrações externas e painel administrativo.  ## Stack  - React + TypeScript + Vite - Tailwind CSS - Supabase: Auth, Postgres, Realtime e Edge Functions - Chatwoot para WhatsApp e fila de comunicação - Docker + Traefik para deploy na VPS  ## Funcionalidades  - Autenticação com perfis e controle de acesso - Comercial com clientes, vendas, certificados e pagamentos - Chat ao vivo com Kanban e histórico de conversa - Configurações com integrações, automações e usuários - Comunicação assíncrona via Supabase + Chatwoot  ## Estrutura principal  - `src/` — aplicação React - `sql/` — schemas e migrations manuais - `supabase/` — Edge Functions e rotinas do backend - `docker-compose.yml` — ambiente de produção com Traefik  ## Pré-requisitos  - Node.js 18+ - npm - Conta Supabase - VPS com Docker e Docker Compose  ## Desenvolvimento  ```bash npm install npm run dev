@@ -1,0 +1,288 @@
+# CRM CertiID
+
+<p align="center">
+  <img src="https://img.shields.io/badge/stack-React%20%7C%20TypeScript%20%7C%20Supabase-blue" alt="Stack" />
+  <img src="https://img.shields.io/badge/deploy-Docker%20%7C%20Traefik%20%7C%20Portainer-success" alt="Deploy" />
+  <img src="https://img.shields.io/badge/status-em%20desenvolvimento-orange" alt="Status" />
+</p>
+
+<p align="center">
+  Plataforma de CRM desenvolvida para operações de certificação digital, com foco em vendas, atendimento, automações, integrações e gestão centralizada do fluxo comercial.
+</p>
+
+---
+
+## Índice
+
+- [Visão geral](#visão-geral)
+- [Principais recursos](#principais-recursos)
+- [Stack](#stack)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Pré-requisitos](#pré-requisitos)
+- [Execução local](#execução-local)
+- [Variáveis de ambiente](#variáveis-de-ambiente)
+- [Banco de dados](#banco-de-dados)
+- [Integrações](#integrações)
+- [Deploy na VPS com Portainer](#deploy-na-vps-com-portainer)
+- [Deploy automático com GitHub Actions](#deploy-automático-com-github-actions)
+- [Segurança](#segurança)
+- [Suporte e solução de problemas](#suporte-e-solução-de-problemas)
+- [Licença](#licença)
+
+---
+
+## Visão geral
+
+O **CRM CertiID** foi criado para organizar a operação comercial e de atendimento em um único ambiente.
+
+Ele permite:
+
+- gerenciar clientes, empresas e oportunidades
+- acompanhar vendas, certificados e renovações
+- operar atendimento em Kanban com histórico de conversa
+- integrar WhatsApp via Chatwoot
+- automatizar eventos por webhooks
+- controlar acesso por perfis de usuário
+- fazer deploy em VPS com Docker e Traefik
+
+---
+
+## Principais recursos
+
+### Comercial
+- Cadastro e gestão de clientes e empresas
+- Lançamento de vendas
+- Controle de certificados, pagamentos e renovações
+- Relação entre cliente, produto e tipo de venda
+
+### Atendimento
+- Kanban de atendimento
+- Histórico de conversas
+- Mensagens em tempo real
+- Ações rápidas por card
+- Organização por etapas e retorno
+
+### Autenticação e acesso
+- Login seguro
+- Perfis com permissões diferentes
+- Proteção de rotas
+- Menu dinâmico por perfil
+
+### Configurações
+- Gestão de usuários
+- Integrações externas
+- Automações
+- Webhooks
+- Conexões com serviços de terceiros
+
+### Comunicação
+- Integração com Chatwoot
+- Fila de envio para mensagens e eventos
+- Histórico de conversa
+- Resposta de clientes refletida no sistema
+
+### Deploy
+- Preparado para Docker
+- Proxy reverso com Traefik
+- Suporte a Portainer
+- Deploy automatizado com GitHub Actions
+
+---
+
+## Stack
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Supabase
+- Chatwoot
+- Docker
+- Traefik
+- Portainer
+- GitHub Actions
+
+---
+
+## Estrutura do projeto
+
+- `src/` — aplicação React
+- `sql/` — scripts de banco e migrations
+- `supabase/` — Edge Functions e rotinas do backend
+- `docker-compose.yml` — ambiente de produção
+- `.github/workflows/` — automações de deploy
+
+---
+
+## Pré-requisitos
+
+### Desenvolvimento
+- Node.js 18+
+- npm
+
+### Produção
+- VPS Linux
+- Docker
+- Docker Compose
+- Portainer
+- Conta Supabase
+- Repositório GitHub configurado
+
+---
+
+## Execução local
+
+```bash
+npm install
+npm run dev
+Build
+bash
+
+npm run build
+Variáveis de ambiente
+Crie um arquivo .env na raiz do projeto.
+
+Exemplo:
+
+env
+
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
+Se houver integrações adicionais:
+
+env
+
+VITE_CHATWOOT_BASE_URL=https://chat.seudominio.com
+VITE_CHATWOOT_ACCOUNT_ID=1
+VITE_CHATWOOT_API_TOKEN=seu_token
+Banco de dados
+O projeto depende de schemas e políticas no Supabase.
+
+Passos
+Abra o SQL Editor do Supabase
+Execute os arquivos da pasta sql/
+Confirme se as tabelas foram criadas
+Verifique se as políticas RLS estão ativas
+Publique as Edge Functions necessárias
+Integrações
+O sistema pode trabalhar com:
+
+Supabase Auth
+Supabase Postgres
+Supabase Realtime
+Supabase Edge Functions
+Chatwoot
+Webhooks externos
+Fila de comunicação
+Automação de processos
+Deploy na VPS com Portainer
+1. Preparar a VPS
+Instale Docker e Docker Compose na VPS.
+
+Exemplo em Ubuntu:
+
+bash
+
+sudo apt update
+sudo apt install -y ca-certificates curl gnupg
+Depois instale o Docker conforme a documentação oficial da sua distribuição.
+
+2. Instalar o Portainer
+Crie o volume:
+
+bash
+
+docker volume create portainer_data
+Suba o Portainer:
+
+bash
+
+docker run -d \
+  -p 8000:8000 \
+  -p 9443:9443 \
+  --name portainer \
+  --restart=always \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v portainer_data:/data \
+  portainer/portainer-ce:latest
+Acesse:
+
+https://IP_DA_VPS:9443
+3. Criar a rede do projeto
+Se o ambiente usar Traefik:
+
+bash
+
+docker network create minha_rede
+4. Clonar o repositório na VPS
+bash
+
+cd /opt
+git clone https://github.com/mantovanio/certiid.git certiid
+cd certiid
+5. Criar o arquivo .env
+bash
+
+nano /opt/certiid/.env
+Exemplo:
+
+env
+
+VITE_SUPABASE_URL=https://seu-projeto.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sua_chave_publica
+Salve o arquivo.
+
+6. Subir o stack no Portainer
+No Portainer:
+
+Vá em Stacks
+Clique em Add stack
+Dê um nome, por exemplo: certiid
+Cole o conteúdo do docker-compose.yml
+Ajuste variáveis de ambiente, se necessário
+Clique em Deploy the stack
+7. Validar os containers
+No Portainer:
+
+abra Containers
+confirme se o serviço está rodando
+verifique logs se algo não subir corretamente
+8. Configurar domínio e HTTPS
+Se usar Traefik:
+
+aponte o domínio para o IP da VPS
+confirme os labels no docker-compose.yml
+valide as rotas
+teste o HTTPS
+Deploy automático com GitHub Actions
+O projeto está preparado para deploy automatizado.
+
+Secrets necessários
+No GitHub, adicione:
+
+VPS_HOST
+VPS_USER
+VPS_SSH_KEY
+Fluxo
+A cada push na branch principal:
+
+o GitHub Actions conecta na VPS via SSH
+executa git pull
+reinicia os containers
+atualiza o ambiente em produção
+Segurança
+Não versionar .env
+Nunca expor service_role no frontend
+Usar RLS no Supabase
+Proteger a VPS com SSH e firewall
+Revisar acessos e permissões periodicamente
+Validar tokens e webhooks antes de liberar produção
+Suporte e solução de problemas
+Se algo falhar:
+
+confira os logs do container
+valide as variáveis de ambiente
+confirme a conexão com Supabase
+teste a comunicação com Chatwoot
+revise rotas, webhooks e políticas RLS
+verifique se a imagem do Docker foi atualizada corretamente
