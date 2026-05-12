@@ -1,3 +1,69 @@
+## 🔄 Passo a Passo para Atualizar o Sistema (Manual)
+
+Sempre que houver alterações no código enviadas para o GitHub, siga os 4 passos abaixo para aplicar a atualização na produção:
+
+### Passo 1: Acessar a pasta na VPS
+Abra o terminal da sua VPS e entre na pasta onde o projeto está localizado:
+```bash
+cd /root/gest-o-ar-certiid/
+```
+
+### Passo 2: Puxar o código novo do GitHub
+Execute o comando para baixar as últimas atualizações do repositório:
+```bash
+git pull
+```
+
+### Passo 3: Compilar a Imagem Docker (Tratamento de Erros)
+Para evitar os erros de conflito de pacotes do Vite/React (`ERRESOLVE`) e garantir a versão correta do Node.js, rode este comando combinado que limpa o ambiente, injeta as flags necessárias e gera o build estável:
+```bash
+sed -i 's/RUN npm install/RUN npm install --legacy-peer-deps/g' Dockerfile && docker build -t certiid-local:latest .
+```
+> *Nota: O processo de compilação leva de 1 a 3 minutos. Aguarde até que o terminal seja liberado.*
+
+### Passo 4: Reiniciar o Container no Portainer
+1. Acesse o painel do seu **Portainer** no navegador.
+2. No menu lateral, vá em **Stacks** e clique na stack `certiid`.
+3. Clique na aba **Editor**.
+4. Sem precisar alterar o código, role até o final da página e clique no botão azul **Update the stack**.
+5. Confirme a operação. O Docker Swarm reiniciará o container com a nova versão em segundos.
+
+---
+
+## 🛠️ Configuração da Stack no Portainer (Referência)
+
+Caso precise recriar a Stack do zero no Portainer Web Editor, o código `docker-compose.yml` homologado para o Swarm é:
+
+```yaml
+version: '3.8'
+
+services:
+  certiid-app:
+    image: certiid-local:latest
+    networks:
+      - minha_rede
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      placement:
+        constraints:
+          - node.role == manager
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.certiid.rule=Host(`mantovan.com.br`)"
+        - "traefik.http.routers.certiid.entrypoints=websecure"
+        - "traefik.http.routers.certiid.tls=true"
+        - "traefik.http.routers.certiid.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.certiid.loadbalancer.server.port=80"
+
+networks:
+  minha_rede:
+    external: true
+    name: minha_rede
+```
+
+
 # CRM CertiID
 
 <p align="center">
