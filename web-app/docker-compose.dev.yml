@@ -1,0 +1,25 @@
+# docker-compose.dev.yml — DESENVOLVIMENTO LOCAL (Windows/Mac/Linux)
+# Uso: docker compose -f docker-compose.dev.yml up
+# Acesso: http://localhost:5173
+# Nao precisa de build — usa hot-reload com o codigo local
+# CHOKIDAR_USEPOLLING=true resolve erro spawn EPERM no Windows
+
+version: '3.8'
+
+services:
+  certiid-dev:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - "5173:5173"
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+      - VITE_HMR_HOST=localhost
+    env_file:
+      - .env
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    restart: unless-stopped
