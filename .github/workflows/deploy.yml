@@ -21,15 +21,4 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy na VPS
-        run: |
-          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash -s << 'ENDSSH'
-            cd /opt/certiid
-            git pull origin main
-            docker build \
-              --build-arg "VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}" \
-              --build-arg "VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}" \
-              -t certiid:latest .
-            docker stack rm certiid 2>/dev/null || true
-            sleep 10
-            docker stack deploy -c docker-compose.yml certiid
-          ENDSSH
+        run: ssh -i ~/.ssh/deploy_key ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} bash /opt/certiid/deploy.sh
