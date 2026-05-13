@@ -1,0 +1,89 @@
+=====================================
+ COMO FAZER DEPLOY DO CERTIID
+=====================================
+
+SITE: https://certiid.mantovan.com.br
+VPS:  root@147.79.111.76
+
+
+-------------------------------------
+ DEPLOY MANUAL (via SSH)
+-------------------------------------
+
+1. Faça o push das suas alterações:
+   git add .
+   git commit -m "sua mensagem"
+   git push origin main
+
+2. Entre na VPS:
+   ssh root@147.79.111.76
+
+3. Rode o script de deploy:
+   bash /opt/certiid/deploy.sh
+
+O script faz automaticamente:
+  - git pull origin main
+  - docker build (com as variáveis do .env)
+  - docker stack rm certiid
+  - docker stack deploy certiid
+
+
+-------------------------------------
+ DEPLOY VIA PORTAINER
+-------------------------------------
+
+1. Acesse o Portainer da VPS
+2. Vá em Environments > Host > Console
+3. Rode: bash /opt/certiid/deploy.sh
+
+
+-------------------------------------
+ CI/CD AUTOMÁTICO (GitHub Actions)
+-------------------------------------
+
+O workflow em .github/workflows/deploy.yml
+dispara automaticamente a cada push na main.
+
+Secrets necessários no GitHub
+(Settings > Secrets and variables > Actions):
+  VPS_HOST     = 147.79.111.76
+  VPS_USER     = root
+  VPS_SSH_KEY  = chave privada em base64
+                 (gerada em /tmp/github_actions_key na VPS)
+  VITE_SUPABASE_URL      = URL do Supabase
+  VITE_SUPABASE_ANON_KEY = chave anon do Supabase
+
+Status atual: em ajuste (ver logs em github.com/mantovanio/certiid/actions)
+
+
+-------------------------------------
+ ARQUIVO .env NA VPS
+-------------------------------------
+
+Localização: /opt/certiid/.env
+
+Conteúdo:
+  VITE_SUPABASE_URL=<url do supabase>
+  VITE_SUPABASE_ANON_KEY=<chave anon>
+
+Este arquivo NÃO está no git (está no .gitignore).
+Se a VPS for resetada, recrie-o manualmente.
+
+
+-------------------------------------
+ INFRAESTRUTURA
+-------------------------------------
+
+- Docker Swarm
+- Traefik (reverse proxy + SSL automático)
+- Rede Docker: minha_rede (overlay)
+- Stack: certiid  /  Serviço: certiid_certiid
+- Imagem local: certiid:latest
+- Repo na VPS: /opt/certiid
+
+Verificar se o serviço está rodando:
+  docker service ls | grep certiid
+
+Ver logs do container:
+  docker service logs certiid_certiid --tail 50
+=====================================
