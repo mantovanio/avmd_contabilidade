@@ -1,0 +1,79 @@
+=====================================
+ COMO INICIAR UM NOVO CHAT DE DEV
+=====================================
+
+PROJETO: CertiID v1.0.0
+REPO:    https://github.com/mantovanio/certiid
+SITE:    https://certiid.mantovan.com.br
+VPS:     root@147.79.111.76
+LOCAL:   c:\projetos\CertiID_1.0.0
+
+
+-------------------------------------
+ PASSO 1 — ANTES DE FECHAR O CHAT
+-------------------------------------
+
+Garanta que tudo está salvo no GitHub:
+
+  git status
+  git push origin main
+
+
+-------------------------------------
+ PASSO 2 — NO NOVO CHAT
+-------------------------------------
+
+Cole esta mensagem para dar contexto ao novo chat:
+
+---
+Projeto: CertiID v1.0.0
+Repo: https://github.com/mantovanio/certiid
+Site: https://certiid.mantovan.com.br
+VPS: root@147.79.111.76
+Diretório local: c:\projetos\CertiID_1.0.0
+
+Toda a documentação técnica está em:
+- DEVELOPER.md — banco de dados, APIs, webhooks, tipos, integrações
+- DEPLOY.txt    — como fazer deploy
+- NOVO-CHAT.txt — este arquivo
+
+Leia o DEVELOPER.md e o DEPLOY.txt antes de começar qualquer alteração.
+---
+
+
+-------------------------------------
+ PASSO 3 — REDEPLOY APÓS ALTERAÇÕES
+-------------------------------------
+
+1. Commite e envie ao GitHub:
+   git add .
+   git commit -m "sua mensagem"
+   git push origin main
+
+2. Entre na VPS e faça o deploy:
+   ssh root@147.79.111.76
+   bash /opt/certiid/deploy.sh
+
+
+-------------------------------------
+ ARQUIVOS IMPORTANTES DO PROJETO
+-------------------------------------
+
+DEVELOPER.md   → Documentação técnica completa
+                 (tabelas, APIs, webhooks, tipos, integrações)
+
+DEPLOY.txt     → Guia de deploy e infraestrutura
+
+deploy.sh      → Script de deploy na VPS
+
+docker-compose.yml          → Configuração Docker Swarm + Traefik
+.github/workflows/deploy.yml → CI/CD GitHub Actions
+
+src/types/index.ts      → Todos os tipos TypeScript
+src/lib/supabase.ts     → Cliente Supabase
+src/lib/communication.ts → Sistema de comunicação
+src/contexts/AuthContext.tsx → Autenticação
+supabase/functions/chatwoot-webhook/ → Webhook do Chatwoot
+sql/                    → Schemas do banco de dados
+
+=====================================
