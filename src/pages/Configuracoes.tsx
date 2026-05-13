@@ -1,0 +1,1132 @@
+import { useState, useEffect, useCallback } from 'react'
+import { Loader2, Pencil, X, Check, KeyRound, UserPlus, Eye, EyeOff, MessageCircle, Mail, Webhook, Save, Send, Trash2, Plus } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { useAuth } from '@/contexts/AuthContext'
+import type { AutomationRule, CommunicationOutbox, ExternalIntegration, IntegrationProvider, IntegrationStatus, Profile, PerfilAcesso } from '@/types'
+
+type Tab = 'geral' | 'integracoes' | 'automacoes' | 'usuarios'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'geral',        label: 'Geral'        },
+  { id: 'integracoes',  label: 'Integrações'  },
+  { id: 'automacoes',   label: 'Automações'   },
+  { id: 'usuarios',     label: 'Usuários'     },
+]
+
+const PERFIL_LABEL: Record<PerfilAcesso, string> = {
+  admin:           'Administrador',
+  agente_registro: 'Agente de Registro',
+  vendedor:        'Vendedor / Parceiro',
+  usuario:         'Usuário',
+}
+
+const PERFIL_COLOR: Record<PerfilAcesso, string> = {
+  admin:           'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+  agente_registro: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  vendedor:        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+  usuario:         'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+}
+
+type ModalSenha = { userId: string; nome: string } | null
+type ModalNovoUsuario = { aberto: boolean }
+
+const PROVIDER_LABEL: Record<IntegrationProvider, string> = {
+  chatwoot: 'Chatwoot / WhatsApp',
+  email_smtp: 'Email SMTP',
+  n8n: 'N8N Webhooks',
+  gestao_ar: 'CertiID / Gestão AR',
+  safe2pay: 'Safe2Pay',
+  safeweb: 'Safeweb',
+  supabase: 'Supabase',
+}
+
+const STATUS_LABEL: Record<IntegrationStatus, string> = {
+  ativo: 'Conectado',
+  pendente: 'Configurar',
+  erro: 'Erro',
+  inativo: 'Inativo',
+}
+
+const STATUS_CLASS: Record<IntegrationStatus, string> = {
+  ativo: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  pendente: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
+  erro: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  inativo: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+}
+
+function providerIcon(provider: IntegrationProvider) {
+  if (provider === 'chatwoot') return MessageCircle
+  if (provider === 'email_smtp') return Mail
+  return Webhook
+}
+
+function automationChannelLabel(channel: AutomationRule['channel']) {
+  const labels: Record<AutomationRule['channel'], string> = {
+    whatsapp: 'WhatsApp',
+    email: 'Email',
+    whatsapp_email: 'WhatsApp + Email',
+    webhook: 'Webhook',
+  }
+  return labels[channel]
+}
+
+function ModalOverlay({ titulo, onClose, children }: { titulo: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col max-h-[90vh]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 shrink-0">
+          <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{titulo}</h3>
+          <button type="button" onClick={onClose} title="Fechar" className="w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center transition-colors">
+            <X size={15} />
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto">{children}</div>
+      </div>
+    </div>
+  )
+}
+
+function CampoSenha({ label, value, onChange, autoFocus }: { label: string; value: string; onChange: (v: string) => void; autoFocus?: boolean }) {
+  const [show, setShow] = useState(false)
+  return (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">{label}</label>
+      <div className="relative">
+        <input
+          type={show ? 'text' : 'password'}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          autoFocus={autoFocus}
+          className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 pr-9 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="Mínimo 6 caracteres"
+        />
+        <button type="button" onClick={() => setShow(s => !s)}
+          title={show ? 'Ocultar senha' : 'Mostrar senha'}
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          {show ? <EyeOff size={15} /> : <Eye size={15} />}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function AbaUsuarios() {
+  const { profile: myProfile } = useAuth()
+  const isAdmin = myProfile?.perfil === 'admin'
+
+  const [users, setUsers]           = useState<Profile[]>([])
+  const [loading, setLoading]       = useState(true)
+  const [editingId, setEditingId]   = useState<string | null>(null)
+  const [editPerfil, setEditPerfil] = useState<PerfilAcesso>('usuario')
+  const [saving, setSaving]         = useState(false)
+
+  // Modal alterar senha
+  const [modalSenha, setModalSenha]   = useState<ModalSenha>(null)
+  const [novaSenha, setNovaSenha]     = useState('')
+  const [confirmSenha, setConfirmSenha] = useState('')
+  const [senhaErro, setSenhaErro]     = useState<string | null>(null)
+  const [senhaOk, setSenhaOk]         = useState(false)
+  const [salvandoSenha, setSalvandoSenha] = useState(false)
+
+  // Modal novo usuário
+  const [novoModal, setNovoModal]     = useState<ModalNovoUsuario>({ aberto: false })
+  const [novoNome, setNovoNome]       = useState('')
+  const [novoEmail, setNovoEmail]     = useState('')
+  const [novoPerfil, setNovoPerfil]   = useState<PerfilAcesso>('usuario')
+  const [novoSenhaU, setNovoSenhaU]   = useState('')
+  const [criandoUser, setCriandoUser] = useState(false)
+  const [criadoOk, setCriadoOk]       = useState(false)
+  const [criadoErro, setCriadoErro]   = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: true })
+    setUsers(data ?? [])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  async function saveEdit(userId: string) {
+    setSaving(true)
+    await supabase.from('profiles').update({ perfil: editPerfil }).eq('id', userId)
+    setSaving(false)
+    setEditingId(null)
+    void load()
+  }
+
+  async function toggleStatus(u: Profile) {
+    const novoStatus = u.status === 'ativo' ? 'inativo' : 'ativo'
+    await supabase.from('profiles').update({ status: novoStatus }).eq('id', u.id)
+    void load()
+  }
+
+  function startEdit(u: Profile) {
+    setEditingId(u.id)
+    setEditPerfil(u.perfil)
+  }
+
+  function abrirModalSenha(u: Profile) {
+    setModalSenha({ userId: u.id, nome: u.nome })
+    setNovaSenha('')
+    setConfirmSenha('')
+    setSenhaErro(null)
+    setSenhaOk(false)
+  }
+
+  function fecharModalSenha() {
+    setModalSenha(null)
+    setSenhaErro(null)
+    setSenhaOk(false)
+  }
+
+  async function salvarSenha() {
+    setSenhaErro(null)
+    if (novaSenha.length < 6) { setSenhaErro('A senha deve ter pelo menos 6 caracteres.'); return }
+    if (novaSenha !== confirmSenha) { setSenhaErro('As senhas não coincidem.'); return }
+    setSalvandoSenha(true)
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(modalSenha!.userId, { password: novaSenha })
+    setSalvandoSenha(false)
+    if (error) { setSenhaErro(error.message); return }
+    setSenhaOk(true)
+  }
+
+  function abrirNovoUsuario() {
+    setNovoNome(''); setNovoEmail(''); setNovoPerfil('usuario'); setNovoSenhaU('')
+    setCriadoOk(false); setCriadoErro(null)
+    setNovoModal({ aberto: true })
+  }
+
+  async function criarUsuario(e: React.FormEvent) {
+    e.preventDefault()
+    setCriadoErro(null)
+    if (novoSenhaU.length < 6) { setCriadoErro('Senha mínima de 6 caracteres.'); return }
+    setCriandoUser(true)
+    const { data, error } = await supabaseAdmin.auth.admin.createUser({
+      email: novoEmail,
+      password: novoSenhaU,
+      email_confirm: true,
+      user_metadata: { nome: novoNome, perfil: novoPerfil },
+    })
+    if (error) { setCriadoErro(error.message); setCriandoUser(false); return }
+    // Garante perfil criado (trigger pode demorar)
+    if (data.user) {
+      await supabaseAdmin.from('profiles').upsert({
+        id: data.user.id, nome: novoNome, email: novoEmail, perfil: novoPerfil, status: 'ativo',
+      })
+    }
+    setCriandoUser(false)
+    setCriadoOk(true)
+    void load()
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
+  }
+
+  return (
+    <>
+      {/* ── Modal Alterar Senha ── */}
+      {modalSenha && (
+        <ModalOverlay titulo={`Alterar senha — ${modalSenha.nome}`} onClose={fecharModalSenha}>
+          {senhaOk ? (
+            <div className="text-center space-y-3 py-2">
+              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
+                <Check size={22} className="text-green-600 dark:text-green-400" />
+              </div>
+              <p className="font-semibold text-gray-900 dark:text-white">Senha alterada!</p>
+              <button type="button" onClick={fecharModalSenha}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Fechar</button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <CampoSenha label="Nova senha" value={novaSenha} onChange={setNovaSenha} autoFocus />
+              <CampoSenha label="Confirmar senha" value={confirmSenha} onChange={setConfirmSenha} />
+              {senhaErro && (
+                <p className="text-xs text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                  ⚠ {senhaErro}
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={fecharModalSenha}
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Cancelar
+                </button>
+                <button type="button" onClick={salvarSenha} disabled={salvandoSenha}
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium transition-colors flex items-center justify-center gap-2">
+                  {salvandoSenha ? <><Loader2 size={14} className="animate-spin" /> Salvando...</> : 'Salvar senha'}
+                </button>
+              </div>
+            </div>
+          )}
+        </ModalOverlay>
+      )}
+
+      {/* ── Modal Novo Usuário ── */}
+      {novoModal.aberto && (
+        <ModalOverlay titulo="Criar novo usuário" onClose={() => setNovoModal({ aberto: false })}>
+          {criadoOk ? (
+            <div className="text-center space-y-3 py-2">
+              <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
+                <Check size={22} className="text-green-600 dark:text-green-400" />
+              </div>
+              <p className="font-semibold text-gray-900 dark:text-white">Usuário criado!</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">{novoEmail} já pode fazer login.</p>
+              <button type="button" onClick={() => setNovoModal({ aberto: false })}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:underline">Fechar</button>
+            </div>
+          ) : (
+            <form onSubmit={criarUsuario} className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nome completo</label>
+                <input type="text" value={novoNome} onChange={e => setNovoNome(e.target.value)} required autoFocus
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Email</label>
+                <input type="email" value={novoEmail} onChange={e => setNovoEmail(e.target.value)} required
+                  placeholder="usuario@email.com"
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <CampoSenha label="Senha inicial" value={novoSenhaU} onChange={setNovoSenhaU} />
+              <div>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Perfil de acesso</label>
+                <select value={novoPerfil} onChange={e => setNovoPerfil(e.target.value as PerfilAcesso)}
+                  title="Perfil de acesso" aria-label="Perfil de acesso"
+                  className="w-full border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="admin">Administrador</option>
+                  <option value="agente_registro">Agente de Registro</option>
+                  <option value="vendedor">Vendedor / Parceiro</option>
+                  <option value="usuario">Usuário</option>
+                </select>
+              </div>
+              {criadoErro && (
+                <p className="text-xs text-red-500 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                  ⚠ {criadoErro}
+                </p>
+              )}
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={() => setNovoModal({ aberto: false })}
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  Cancelar
+                </button>
+                <button type="submit" disabled={criandoUser}
+                  className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium transition-colors flex items-center justify-center gap-2">
+                  {criandoUser ? <><Loader2 size={14} className="animate-spin" /> Criando...</> : 'Criar usuário'}
+                </button>
+              </div>
+            </form>
+          )}
+        </ModalOverlay>
+      )}
+
+      {/* ── Lista de usuários ── */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="font-semibold text-gray-800 dark:text-gray-200">Usuários do Sistema</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+              {isAdmin
+                ? 'Gerencie perfis, senhas e status de cada usuário.'
+                : 'Para gerenciar usuários, contate o administrador.'}
+            </p>
+          </div>
+          {isAdmin && (
+            <button type="button" onClick={abrirNovoUsuario}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
+              <UserPlus size={14} /> Novo usuário
+            </button>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          {users.map(u => (
+            <div key={u.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  <div className={cn(
+                    'w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0',
+                    u.perfil === 'admin' ? 'bg-purple-600' :
+                    u.perfil === 'agente_registro' ? 'bg-green-600' :
+                    u.perfil === 'vendedor' ? 'bg-blue-600' : 'bg-gray-500'
+                  )}>
+                    {u.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate">{u.nome}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{u.email}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                  {editingId === u.id ? (
+                    <div className="flex items-center gap-2">
+                      <select value={editPerfil} onChange={e => setEditPerfil(e.target.value as PerfilAcesso)}
+                        title="Perfil de acesso" aria-label="Perfil de acesso"
+                        className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="admin">Administrador</option>
+                        <option value="agente_registro">Agente de Registro</option>
+                        <option value="vendedor">Vendedor / Parceiro</option>
+                        <option value="usuario">Usuário</option>
+                      </select>
+                      <button type="button" onClick={() => saveEdit(u.id)} disabled={saving} title="Salvar"
+                        className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center hover:bg-green-200 transition-colors">
+                        {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} title="Cancelar"
+                        className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <X size={13} />
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', PERFIL_COLOR[u.perfil])}>
+                        {PERFIL_LABEL[u.perfil]}
+                      </span>
+                      <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
+                        u.status === 'ativo'
+                          ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                          : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400')}>
+                        {u.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                      </span>
+
+                      {isAdmin && (
+                        <div className="flex items-center gap-1">
+                          <button type="button" onClick={() => startEdit(u)} title="Editar perfil"
+                            className="w-7 h-7 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 flex items-center justify-center transition-colors">
+                            <Pencil size={13} />
+                          </button>
+                          <button type="button" onClick={() => abrirModalSenha(u)} title="Alterar senha"
+                            className="w-7 h-7 rounded-lg text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 dark:hover:text-blue-400 flex items-center justify-center transition-colors">
+                            <KeyRound size={13} />
+                          </button>
+                          {u.id !== myProfile?.id && (
+                            <button type="button" onClick={() => toggleStatus(u)}
+                              className={cn('text-xs px-2 py-1 rounded-lg font-medium transition-colors',
+                                u.status === 'ativo'
+                                  ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
+                                  : 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20')}
+                              title={u.status === 'ativo' ? 'Desativar' : 'Reativar'}>
+                              {u.status === 'ativo' ? 'Desativar' : 'Reativar'}
+                            </button>
+                          )}
+                        </div>
+                      )}
+                      {u.id === myProfile?.id && !isAdmin && (
+                        <span className="text-xs text-gray-400 dark:text-gray-600 italic">você</span>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {users.length === 0 && (
+            <div className="text-center py-10 text-gray-400 dark:text-gray-600">
+              <p className="text-sm">Nenhum usuário cadastrado ainda.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+const EDGE_FN = 'https://cvfrhfiaprdtwxxplngk.supabase.co/functions/v1/chatwoot-webhook'
+
+async function testarChatwoot(baseUrl: string, token: string): Promise<{ ok: boolean; erro: string | null }> {
+  try {
+    const res = await fetch(EDGE_FN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _action: 'test_connection', base_url: baseUrl, api_token: token }),
+      signal: AbortSignal.timeout(12000),
+    })
+    const data = await res.json() as { ok: boolean; error?: string; name?: string }
+    if (data.ok) return { ok: true, erro: null }
+    return { ok: false, erro: data.error ?? 'Falha na conexão' }
+  } catch {
+    return { ok: false, erro: 'Sem conexão com o servidor' }
+  }
+}
+
+function AbaIntegracoes() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.perfil === 'admin'
+
+  const [integracoes, setIntegracoes] = useState<ExternalIntegration[]>([])
+  const [outbox, setOutbox] = useState<CommunicationOutbox[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [editing, setEditing] = useState<ExternalIntegration | null>(null)
+  const [form, setForm] = useState<Partial<ExternalIntegration>>({})
+  const [saving, setSaving] = useState(false)
+  const [testando, setTestando] = useState<IntegrationProvider | null>(null)
+  const [novaModal, setNovaModal] = useState(false)
+  const [novaForm, setNovaForm] = useState<Partial<ExternalIntegration>>({ status: 'pendente' as IntegrationStatus })
+  const [novaProvider, setNovaProvider] = useState<IntegrationProvider>('chatwoot')
+  const [criando, setCriando] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState<ExternalIntegration | null>(null)
+  const [deletando, setDeletando] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErro(null)
+    const [integracoesRes, outboxRes] = await Promise.all([
+      supabase.from('external_integrations').select('*').order('name', { ascending: true }),
+      supabase.from('communication_outbox').select('*').order('created_at', { ascending: false }).limit(8),
+    ])
+
+    if (integracoesRes.error) {
+      setErro(integracoesRes.error.message)
+      setLoading(false)
+      return
+    }
+
+    const lista = (integracoesRes.data ?? []) as ExternalIntegration[]
+    setIntegracoes(lista)
+    setOutbox((outboxRes.data ?? []) as CommunicationOutbox[])
+    setLoading(false)
+
+    // Verifica Chatwoot silenciosamente após carregar
+    const chatwoot = lista.find(i => i.provider === 'chatwoot' && i.base_url && i.api_token)
+    if (chatwoot) {
+      const resultado = await testarChatwoot(chatwoot.base_url!, chatwoot.api_token!)
+      const novoStatus: IntegrationStatus = resultado.ok ? 'ativo' : 'erro'
+      if (novoStatus !== chatwoot.status) {
+        await supabase.from('external_integrations').update({
+          status: novoStatus,
+          last_test_at: new Date().toISOString(),
+          last_error: resultado.erro,
+        }).eq('id', chatwoot.id)
+        setIntegracoes(prev => prev.map(i =>
+          i.id === chatwoot.id ? { ...i, status: novoStatus, last_error: resultado.erro } : i
+        ))
+      }
+    }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  function startEdit(integracao: ExternalIntegration) {
+    setEditing(integracao)
+    setForm({ ...integracao })
+  }
+
+  function closeEdit() {
+    setEditing(null)
+    setForm({})
+  }
+
+  async function salvarIntegracao() {
+    if (!editing) return
+    setSaving(true)
+
+    let statusFinal: IntegrationStatus = form.status ?? 'pendente'
+    let lastError: string | null = editing.last_error ?? null
+    let lastTestAt: string | null = editing.last_test_at ?? null
+
+    if (editing.provider === 'chatwoot') {
+      const baseUrl = form.base_url ?? ''
+      const token = form.api_token ?? ''
+      if (baseUrl && token) {
+        const resultado = await testarChatwoot(baseUrl, token)
+        statusFinal = resultado.ok ? 'ativo' : 'erro'
+        lastError = resultado.erro
+        lastTestAt = new Date().toISOString()
+      } else {
+        statusFinal = 'pendente'
+        lastError = null
+      }
+    }
+
+    const { error } = await supabase.from('external_integrations').update({
+      name: form.name,
+      description: form.description,
+      status: statusFinal,
+      base_url: form.base_url || null,
+      webhook_url: form.webhook_url || null,
+      api_token: form.api_token || null,
+      account_id: form.account_id || null,
+      inbox_id: form.inbox_id || null,
+      sender_name: form.sender_name || null,
+      sender_email: form.sender_email || null,
+      host: form.host || null,
+      port: form.port || null,
+      username: form.username || null,
+      last_test_at: lastTestAt,
+      last_error: lastError,
+    }).eq('id', editing.id)
+    setSaving(false)
+
+    if (error) {
+      alert('Erro ao salvar: ' + error.message)
+      return
+    }
+
+    closeEdit()
+    void load()
+  }
+
+  async function registrarTeste(integracao: ExternalIntegration) {
+    setTestando(integracao.provider)
+
+    if (integracao.provider === 'chatwoot') {
+      if (!integracao.base_url || !integracao.api_token || !integracao.account_id) {
+        alert('Configure URL base, API Token e Account ID primeiro.')
+        setTestando(null)
+        return
+      }
+      try {
+        const res = await fetch(EDGE_FN, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            _action:    'sync_conversations',
+            base_url:   integracao.base_url,
+            api_token:  integracao.api_token,
+            account_id: integracao.account_id,
+          }),
+        })
+        const data = await res.json() as { ok: boolean; count?: number; error?: string }
+        if (!data.ok) throw new Error(data.error ?? 'Erro desconhecido')
+        alert(`${data.count ?? 0} conversa(s) sincronizada(s) com o Kanban!`)
+      } catch (e) {
+        alert('Erro ao sincronizar: ' + String(e))
+      }
+      setTestando(null)
+      void load()
+      return
+    } else if (integracao.provider === 'email_smtp') {
+      await supabase.from('communication_outbox').insert([{
+        channel: 'email',
+        provider: 'email_smtp',
+        to_address: integracao.sender_email || integracao.username || 'teste@email.com',
+        subject: 'Teste de email - AR CERTI ID',
+        body: 'Mensagem de teste do CRM AR CERTI ID via SMTP.',
+        payload: { integration_id: integracao.id, test: true },
+      }])
+    } else if (integracao.provider === 'n8n') {
+      await supabase.from('communication_outbox').insert([{
+        channel: 'webhook',
+        provider: 'n8n',
+        to_address: integracao.webhook_url || 'n8n',
+        body: 'Teste de webhook N8N',
+        payload: { integration_id: integracao.id, test: true },
+      }])
+    }
+
+    await supabase.from('external_integrations').update({
+      last_test_at: new Date().toISOString(),
+      last_error: null,
+    }).eq('id', integracao.id)
+
+    setTestando(null)
+    void load()
+  }
+
+  function providersDisponiveis(): IntegrationProvider[] {
+    const usados = new Set(integracoes.map(i => i.provider))
+    return (Object.keys(PROVIDER_LABEL) as IntegrationProvider[]).filter(p => !usados.has(p))
+  }
+
+  function abrirNovaIntegracao() {
+    const disponiveis = providersDisponiveis()
+    if (disponiveis.length === 0) return
+    setNovaProvider(disponiveis[0])
+    setNovaForm({ status: 'pendente' as IntegrationStatus })
+    setNovaModal(true)
+  }
+
+  async function criarIntegracao() {
+    setCriando(true)
+    const { error } = await supabase.from('external_integrations').insert([{
+      provider: novaProvider,
+      name: PROVIDER_LABEL[novaProvider],
+      description: novaForm.description ?? null,
+      status: novaForm.status ?? 'pendente',
+      base_url: novaForm.base_url || null,
+      webhook_url: novaForm.webhook_url || null,
+      api_token: novaForm.api_token || null,
+      account_id: novaForm.account_id || null,
+      inbox_id: novaForm.inbox_id || null,
+      sender_name: novaForm.sender_name || null,
+      sender_email: novaForm.sender_email || null,
+      host: novaForm.host || null,
+      port: novaForm.port || null,
+      username: novaForm.username || null,
+      metadata: {},
+    }])
+    setCriando(false)
+    if (error) { alert('Erro ao criar: ' + error.message); return }
+    setNovaModal(false)
+    void load()
+  }
+
+  async function deletarIntegracao() {
+    if (!confirmDelete) return
+    setDeletando(true)
+    const { error } = await supabase.from('external_integrations').delete().eq('id', confirmDelete.id)
+    setDeletando(false)
+    if (error) { alert('Erro ao remover: ' + error.message); setConfirmDelete(null); return }
+    setConfirmDelete(null)
+    void load()
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg p-4 text-sm">
+        Erro ao carregar integrações: {erro}. Execute o SQL <strong>sql/integrations_schema.sql</strong> no Supabase.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {editing && (
+        <ModalOverlay titulo={`Configurar ${PROVIDER_LABEL[editing.provider]}`} onClose={closeEdit}>
+          <div className="space-y-3">
+            {editing.provider === 'chatwoot' ? (
+              <p className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 rounded-lg px-3 py-2">
+                Status detectado automaticamente ao salvar
+              </p>
+            ) : (
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Status</span>
+                <select value={form.status ?? 'pendente'} onChange={e => setForm(p => ({ ...p, status: e.target.value as IntegrationStatus }))}
+                  className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="ativo">Conectado</option>
+                  <option value="pendente">Configurar</option>
+                  <option value="erro">Erro</option>
+                  <option value="inativo">Inativo</option>
+                </select>
+              </label>
+            )}
+
+            <ConfigInput label="URL base / API" value={form.base_url ?? ''} onChange={base_url => setForm(p => ({ ...p, base_url }))} placeholder="https://chatwoot.seudominio.com" />
+            <ConfigInput label="Webhook de entrada/saída" value={form.webhook_url ?? ''} onChange={webhook_url => setForm(p => ({ ...p, webhook_url }))} placeholder="https://..." />
+
+            {editing.provider === 'chatwoot' && (
+              <>
+                <ConfigInput label="Account ID" value={form.account_id ?? ''} onChange={account_id => setForm(p => ({ ...p, account_id }))} />
+                <ConfigInput label="Inbox ID WhatsApp" value={form.inbox_id ?? ''} onChange={inbox_id => setForm(p => ({ ...p, inbox_id }))} />
+                <ConfigInput label="Access Token / API Token" type="password" value={form.api_token ?? ''} onChange={api_token => setForm(p => ({ ...p, api_token }))} />
+              </>
+            )}
+
+            {editing.provider === 'email_smtp' && (
+              <>
+                <ConfigInput label="Servidor SMTP" value={form.host ?? ''} onChange={host => setForm(p => ({ ...p, host }))} placeholder="smtp.gmail.com" />
+                <ConfigInput label="Porta" type="number" value={String(form.port ?? '')} onChange={port => setForm(p => ({ ...p, port: Number(port) || null }))} placeholder="587" />
+                <ConfigInput label="Usuário SMTP" value={form.username ?? ''} onChange={username => setForm(p => ({ ...p, username }))} />
+                <ConfigInput label="Senha / App Password" type="password" value={form.api_token ?? ''} onChange={api_token => setForm(p => ({ ...p, api_token }))} />
+                <ConfigInput label="Nome do remetente" value={form.sender_name ?? ''} onChange={sender_name => setForm(p => ({ ...p, sender_name }))} />
+                <ConfigInput label="Email do remetente" type="email" value={form.sender_email ?? ''} onChange={sender_email => setForm(p => ({ ...p, sender_email }))} />
+              </>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={closeEdit}
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+                Cancelar
+              </button>
+              <button type="button" onClick={salvarIntegracao} disabled={saving || !isAdmin}
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium flex items-center justify-center gap-2">
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Salvar
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {confirmDelete && (
+        <ModalOverlay titulo="Remover integração" onClose={() => setConfirmDelete(null)}>
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Deseja remover <strong className="text-gray-900 dark:text-white">{confirmDelete.name}</strong>?
+              Todas as credenciais configuradas serão apagadas.
+            </p>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setConfirmDelete(null)}
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" onClick={deletarIntegracao} disabled={deletando}
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white font-medium flex items-center justify-center gap-2 transition-colors">
+                {deletando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Remover
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      {novaModal && (
+        <ModalOverlay titulo="Nova Integração" onClose={() => setNovaModal(false)}>
+          <div className="space-y-3">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Provedor</span>
+              <select value={novaProvider} onChange={e => setNovaProvider(e.target.value as IntegrationProvider)}
+                className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                {providersDisponiveis().map(p => (
+                  <option key={p} value={p}>{PROVIDER_LABEL[p]}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500 dark:text-gray-400">Status</span>
+              <select value={novaForm.status ?? 'pendente'} onChange={e => setNovaForm(f => ({ ...f, status: e.target.value as IntegrationStatus }))}
+                className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="ativo">Conectado</option>
+                <option value="pendente">Configurar</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </label>
+            <ConfigInput label="URL base / API" value={novaForm.base_url ?? ''} onChange={v => setNovaForm(f => ({ ...f, base_url: v }))} placeholder="https://..." />
+            <ConfigInput label="Webhook" value={novaForm.webhook_url ?? ''} onChange={v => setNovaForm(f => ({ ...f, webhook_url: v }))} placeholder="https://..." />
+            {novaProvider === 'chatwoot' && (
+              <>
+                <ConfigInput label="Account ID" value={novaForm.account_id ?? ''} onChange={v => setNovaForm(f => ({ ...f, account_id: v }))} />
+                <ConfigInput label="Inbox ID WhatsApp" value={novaForm.inbox_id ?? ''} onChange={v => setNovaForm(f => ({ ...f, inbox_id: v }))} />
+                <ConfigInput label="API Token" type="password" value={novaForm.api_token ?? ''} onChange={v => setNovaForm(f => ({ ...f, api_token: v }))} />
+              </>
+            )}
+            {novaProvider === 'email_smtp' && (
+              <>
+                <ConfigInput label="Servidor SMTP" value={novaForm.host ?? ''} onChange={v => setNovaForm(f => ({ ...f, host: v }))} placeholder="smtp.gmail.com" />
+                <ConfigInput label="Porta" type="number" value={String(novaForm.port ?? '')} onChange={v => setNovaForm(f => ({ ...f, port: Number(v) || null }))} placeholder="587" />
+                <ConfigInput label="Usuário SMTP" value={novaForm.username ?? ''} onChange={v => setNovaForm(f => ({ ...f, username: v }))} />
+                <ConfigInput label="Senha / App Password" type="password" value={novaForm.api_token ?? ''} onChange={v => setNovaForm(f => ({ ...f, api_token: v }))} />
+                <ConfigInput label="Nome remetente" value={novaForm.sender_name ?? ''} onChange={v => setNovaForm(f => ({ ...f, sender_name: v }))} />
+                <ConfigInput label="Email remetente" type="email" value={novaForm.sender_email ?? ''} onChange={v => setNovaForm(f => ({ ...f, sender_email: v }))} />
+              </>
+            )}
+            <div className="flex gap-2 pt-2">
+              <button type="button" onClick={() => setNovaModal(false)}
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" onClick={criarIntegracao} disabled={criando}
+                className="flex-1 px-4 py-2.5 text-sm rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium flex items-center justify-center gap-2 transition-colors">
+                {criando ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Criar
+              </button>
+            </div>
+          </div>
+        </ModalOverlay>
+      )}
+
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200">Integrações Externas</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Configure Chatwoot para WhatsApp, SMTP para email e webhooks para automações.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {isAdmin && providersDisponiveis().length > 0 && (
+            <button type="button" onClick={abrirNovaIntegracao}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors whitespace-nowrap">
+              <Plus size={13} /> Nova integração
+            </button>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            <SummaryChip label="Conectados" value={integracoes.filter(i => i.status === 'ativo').length} tone="green" />
+            <SummaryChip label="Pendentes" value={integracoes.filter(i => i.status === 'pendente').length} tone="yellow" />
+            <SummaryChip label="Fila" value={outbox.length} tone="blue" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+        {integracoes.map(int => {
+          const Icon = providerIcon(int.provider)
+          return (
+            <div key={int.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 shadow-sm">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className={cn(
+                    'w-10 h-10 rounded-xl flex items-center justify-center shrink-0',
+                    int.status === 'ativo'
+                      ? 'bg-green-50 dark:bg-green-900/20'
+                      : int.status === 'erro'
+                        ? 'bg-red-50 dark:bg-red-900/20'
+                        : 'bg-blue-50 dark:bg-blue-900/20'
+                  )}>
+                    <Icon size={17} className="text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium text-sm">{int.name}</p>
+                      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                        {PROVIDER_LABEL[int.provider]}
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{int.description}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {(int.base_url || int.webhook_url) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-[11px] text-gray-600 dark:text-gray-300 break-all">
+                          {int.base_url || int.webhook_url}
+                        </span>
+                      )}
+                      {int.host && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-[11px] text-gray-600 dark:text-gray-300">
+                          SMTP {int.host}{int.port ? `:${int.port}` : ''}
+                        </span>
+                      )}
+                      {int.inbox_id && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-50 dark:bg-gray-800 text-[11px] text-gray-600 dark:text-gray-300">
+                          Inbox #{int.inbox_id}
+                        </span>
+                      )}
+                    </div>
+                    {int.last_test_at && (
+                      <p className="text-xs text-gray-400 mt-2">Último teste: {new Date(int.last_test_at).toLocaleString('pt-BR')}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium', STATUS_CLASS[int.status])}>
+                    {STATUS_LABEL[int.status]}
+                  </span>
+                  <div className="flex items-center gap-1">
+                    {(['chatwoot', 'email_smtp', 'n8n'] as IntegrationProvider[]).includes(int.provider) && (
+                      <button type="button" onClick={() => registrarTeste(int)} disabled={testando === int.provider}
+                        title="Registrar teste na fila"
+                        className="w-8 h-8 rounded-lg text-gray-400 hover:bg-green-50 dark:hover:bg-green-900/20 hover:text-green-600 dark:hover:text-green-400 flex items-center justify-center">
+                        {testando === int.provider ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                      </button>
+                    )}
+                    <button type="button" onClick={() => startEdit(int)} title="Configurar"
+                      className="w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-200 flex items-center justify-center">
+                      <Pencil size={14} />
+                    </button>
+                    {isAdmin && (
+                      <button type="button" onClick={() => setConfirmDelete(int)} title="Remover integração"
+                        className="w-8 h-8 rounded-lg text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500 dark:hover:text-red-400 flex items-center justify-center transition-colors">
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Fila de Comunicação</h3>
+        </div>
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left">
+              {['Canal', 'Destino', 'Status', 'Criado em'].map(h => <th key={h} className="px-5 py-3">{h}</th>)}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+            {outbox.length === 0 ? (
+              <tr><td colSpan={4} className="px-5 py-8 text-center text-gray-400">Nenhum envio registrado ainda.</td></tr>
+            ) : outbox.map(item => (
+              <tr key={item.id}>
+                <td className="px-5 py-3">{item.channel}</td>
+                <td className="px-5 py-3 text-gray-500">{item.to_address}</td>
+                <td className="px-5 py-3">
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{item.status}</span>
+                </td>
+                <td className="px-5 py-3 text-gray-400 text-xs">{new Date(item.created_at).toLocaleString('pt-BR')}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function AbaAutomacoes() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.perfil === 'admin'
+  const [automacoes, setAutomacoes] = useState<AutomationRule[]>([])
+  const [loading, setLoading] = useState(true)
+  const [erro, setErro] = useState<string | null>(null)
+  const [schemaPronto, setSchemaPronto] = useState(true)
+  const [savingId, setSavingId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErro(null)
+    const { data, error } = await supabase.from('automation_rules').select('*').order('created_at', { ascending: true })
+    if (error) {
+      const schemaMissing = error.code === '42P01' || /automation_rules/i.test(error.message)
+      setSchemaPronto(!schemaMissing)
+      setErro(error.message)
+      setLoading(false)
+      return
+    }
+    setSchemaPronto(true)
+    setAutomacoes((data ?? []) as AutomationRule[])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  async function toggleAutomacao(rule: AutomationRule) {
+    setSavingId(rule.id)
+    setAutomacoes(prev => prev.map(a => a.id === rule.id ? { ...a, ativo: !a.ativo } : a))
+    const { error } = await supabase.from('automation_rules').update({ ativo: !rule.ativo }).eq('id', rule.id)
+    setSavingId(null)
+    if (error) {
+      setAutomacoes(prev => prev.map(a => a.id === rule.id ? { ...a, ativo: rule.ativo } : a))
+      alert('Erro ao atualizar automação: ' + error.message)
+    }
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
+  }
+
+  if (erro) {
+    return (
+      <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg p-4 text-sm">
+        Erro ao carregar automações: {erro}. Execute o SQL <strong>sql/integrations_schema.sql</strong> no Supabase.
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-200">Regras de Automação</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Essas regras alimentam a fila de comunicação para WhatsApp, email e webhooks.
+        </p>
+      </div>
+      {!schemaPronto && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-lg p-4 text-sm">
+          O schema de automações ainda não foi aplicado no Supabase. Execute <strong>sql/integrations_schema.sql</strong> para liberar essa aba.
+        </div>
+      )}
+      <div className="space-y-3">
+        {automacoes.map(a => (
+          <div key={a.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-4 flex items-center justify-between gap-4">
+            <div>
+              <p className="font-medium text-sm">{a.label}</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                Canal: {automationChannelLabel(a.channel)} · Gatilho: {a.trigger_key}
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={!isAdmin || !schemaPronto || savingId === a.id}
+              onClick={() => toggleAutomacao(a)}
+              className={cn('relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 disabled:opacity-50',
+                a.ativo ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700')}
+            >
+              <span className={cn('pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200',
+                a.ativo ? 'translate-x-5' : 'translate-x-0')} />
+            </button>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ConfigInput({ label, value, onChange, placeholder, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; type?: string }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
+      <input
+        type={type}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </label>
+  )
+}
+
+function SummaryChip({ label, value, tone }: { label: string; value: number; tone: 'green' | 'yellow' | 'blue' }) {
+  const toneClass: Record<'green' | 'yellow' | 'blue', string> = {
+    green: 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400',
+    yellow: 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-400',
+    blue: 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400',
+  }
+  return (
+    <div className={cn('rounded-xl px-3 py-2 border border-gray-200 dark:border-gray-800', toneClass[tone])}>
+      <p className="text-[10px] uppercase tracking-wide opacity-80">{label}</p>
+      <p className="text-sm font-semibold leading-none mt-1">{value}</p>
+    </div>
+  )
+}
+
+export default function Configuracoes() {
+  const [tab, setTab] = useState<Tab>('geral')
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-1 px-6 py-2 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-x-auto shrink-0">
+        {TABS.map(t => (
+          <button key={t.id} type="button" onClick={() => setTab(t.id)}
+            className={cn('px-3 py-2 text-xs font-medium rounded-md whitespace-nowrap transition-colors',
+              tab === t.id
+                ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800')}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+
+        {/* GERAL */}
+        {tab === 'geral' && (
+          <div className="max-w-lg space-y-5">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-200">Informações da Agência</h2>
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
+              {[
+                { label: 'Nome da Agência',  value: 'AR CERTI ID' },
+                { label: 'Responsável',      value: 'Alexandre Aparecido Mantovan' },
+                { label: 'Telefone',         value: '+55 11 9508-9218' },
+                { label: 'Cidade',           value: 'São Paulo - SP' },
+              ].map(f => (
+                <label key={f.label} className="flex flex-col gap-1">
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{f.label}</span>
+                  <input
+                    type="text"
+                    defaultValue={f.value}
+                    className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </label>
+              ))}
+              <button type="button" className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                Salvar Alterações
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* INTEGRAÇÕES */}
+        {tab === 'integracoes' && <AbaIntegracoes />}
+
+        {/* AUTOMAÇÕES */}
+        {tab === 'automacoes' && <AbaAutomacoes />}
+
+        {/* USUÁRIOS */}
+        {tab === 'usuarios' && <AbaUsuarios />}
+
+      </div>
+    </div>
+  )
+}

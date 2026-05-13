@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  crm-apice:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+    restart: always
+    deploy:
+      replicas: 1
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.crm-apice.rule=Host(`certiid.mantovan.com.br`)"
+        - "traefik.http.routers.crm-apice.entrypoints=websecure"
+        - "traefik.http.routers.crm-apice.tls.certresolver=letsencryptresolver"
+        - "traefik.http.services.crm-apice.loadbalancer.server.port=80"
+        - "traefik.docker.network=minha_rede"
+    networks:
+      - minha_rede
+
+networks:
+  minha_rede:
+    external: true

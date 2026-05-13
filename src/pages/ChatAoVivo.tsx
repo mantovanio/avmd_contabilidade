@@ -1,0 +1,1036 @@
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import { useDroppable, useDraggable } from '@dnd-kit/core'
+import {
+  MessageCircle,
+  CalendarClock,
+  Pencil,
+  ArrowRightLeft,
+  List,
+  Columns,
+  X,
+  Phone,
+  Mail,
+  Clock3,
+  Plus,
+  Trash2,
+  Settings2,
+  Save,
+  UserPlus,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { cn } from '@/lib/utils'
+import ChatPanel, { type ChatwootCfg } from '@/components/ChatPanel'
+import type { Lead, StatusLead } from '@/types'
+
+interface ColumnConfig {
+  id: string
+  status_key: string
+  label: string
+  color: string
+  bg: string
+  border: string
+  ordem: number
+  ativo: boolean
+}
+
+type LeadFormState = {
+  nome_lead: string
+  whatsapp_lead: string
+  motivo_contato: string
+  resumo_conversa: string
+  ultima_mensagem: string
+  anotacoes: string
+  data_agendamento: string
+  status: StatusLead
+}
+
+type ColumnFormState = {
+  id?: string
+  status_key: string
+  label: string
+  color: string
+  bg: string
+  border: string
+  ordem: number
+  ativo: boolean
+}
+
+const DEFAULT_COLUMNS: ColumnConfig[] = [
+  { id: 'iniciou_conversa', status_key: 'iniciou_conversa', label: 'Iniciou Conversa', color: '#F59E0B', bg: 'bg-yellow-50 dark:bg-yellow-900/10', border: 'border-yellow-200 dark:border-yellow-800', ordem: 1, ativo: true },
+  { id: 'conversando', status_key: 'conversando', label: 'Conversando', color: '#3B82F6', bg: 'bg-blue-50 dark:bg-blue-900/10', border: 'border-blue-200 dark:border-blue-800', ordem: 2, ativo: true },
+  { id: 'agendado', status_key: 'agendado', label: 'Agendado', color: '#10B981', bg: 'bg-green-50 dark:bg-green-900/10', border: 'border-green-200 dark:border-green-800', ordem: 3, ativo: true },
+  { id: 'cliente', status_key: 'cliente', label: 'Cliente', color: '#8B5CF6', bg: 'bg-purple-50 dark:bg-purple-900/10', border: 'border-purple-200 dark:border-purple-800', ordem: 4, ativo: true },
+  { id: 'follow_up', status_key: 'follow_up', label: 'Follow Up', color: '#F97316', bg: 'bg-orange-50 dark:bg-orange-900/10', border: 'border-orange-200 dark:border-orange-800', ordem: 5, ativo: true },
+  { id: 'cancelou_agendamento', status_key: 'cancelou_agendamento', label: 'Cancelou Agendamento', color: '#EF4444', bg: 'bg-red-50 dark:bg-red-900/10', border: 'border-red-200 dark:border-red-800', ordem: 6, ativo: true },
+  { id: 'perdido', status_key: 'perdido', label: 'Perdido', color: '#6B7280', bg: 'bg-gray-50 dark:bg-gray-800/30', border: 'border-gray-200 dark:border-gray-700', ordem: 7, ativo: true },
+]
+
+const STATUS_LABEL: Record<string, string> = Object.fromEntries(DEFAULT_COLUMNS.map(column => [column.id, column.label]))
+const STATUS_ORDER = DEFAULT_COLUMNS.map(column => column.id)
+
+type QuickModal = { lead: Lead; suggestedStatus: StatusLead } | null
+type LeadModal = { mode: 'novo' | 'editar'; lead?: Lead } | null
+type ColumnModal = { mode: 'novo' | 'editar'; column: ColumnConfig } | null
+
+function emptyLeadForm(): LeadFormState {
+  return {
+    nome_lead: '',
+    whatsapp_lead: '',
+    motivo_contato: '',
+    resumo_conversa: '',
+    ultima_mensagem: '',
+    anotacoes: '',
+    data_agendamento: '',
+    status: 'iniciou_conversa',
+  }
+}
+
+function emptyColumnForm(): ColumnConfig {
+  return {
+    id: '',
+    status_key: '',
+    label: '',
+    color: '#3B82F6',
+    bg: 'bg-blue-50 dark:bg-blue-900/10',
+    border: 'border-blue-200 dark:border-blue-800',
+    ordem: 1,
+    ativo: true,
+  }
+}
+
+export default function ChatAoVivo() {
+  const [leads, setLeads] = useState<Lead[]>([])
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [view, setView] = useState<'kanban' | 'lista'>('kanban')
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [quickModal, setQuickModal] = useState<QuickModal>(null)
+  const [leadModal, setLeadModal] = useState<LeadModal>(null)
+  const [columnModal, setColumnModal] = useState<ColumnModal>(null)
+  const [savingQuick, setSavingQuick] = useState(false)
+  const [savingLead, setSavingLead] = useState(false)
+  const [savingColumn, setSavingColumn] = useState(false)
+  const [reagendarEm, setReagendarEm] = useState('')
+  const [reagendarObs, setReagendarObs] = useState('')
+  const [leadForm, setLeadForm] = useState<LeadFormState>(emptyLeadForm())
+  const [chatwoot, setChatwoot] = useState<ChatwootCfg | null>(null)
+  const [chatLead, setChatLead] = useState<Lead | null>(null)
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+  useEffect(() => {
+    void loadAll()
+    void loadChatwoot()
+    const channel = supabase
+      .channel('chat-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads_contabilidade' }, payload => {
+        if (payload.eventType === 'UPDATE') setLeads(prev => prev.map(lead => lead.id === (payload.new as Lead).id ? payload.new as Lead : lead))
+        if (payload.eventType === 'INSERT') setLeads(prev => [payload.new as Lead, ...prev])
+        if (payload.eventType === 'DELETE') setLeads(prev => prev.filter(lead => lead.id !== (payload.old as Lead).id))
+      })
+      .subscribe()
+
+    const columnsChannel = supabase
+      .channel('chat-kanban-columns')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_kanban_columns' }, () => {
+        void loadColumns()
+      })
+      .subscribe()
+
+    const eventsChannel = supabase
+      .channel('chat-events-feed')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'communication_events' }, change => {
+        const row = change.new as Record<string, unknown>
+        const eventType = String(row.event_type ?? '')
+        const conversationId = String(row.conversation_id ?? '')
+        if (!conversationId || !eventType) return
+
+        const payload = row.payload as Record<string, unknown> | undefined
+        const data = payload?.data as Record<string, unknown> | undefined
+        const leadMessage = (data?.content as string | undefined) ?? null
+
+        if (eventType === 'message_created') {
+          setLeads(prev => prev.map(lead => {
+            if (lead.id_conversa_chatwoot !== conversationId) return lead
+            return {
+              ...lead,
+              ultima_mensagem: leadMessage ?? lead.ultima_mensagem,
+              status: lead.status === 'iniciou_conversa' ? 'conversando' : lead.status,
+            }
+          }))
+        }
+
+        if (eventType === 'conversation_updated') {
+          setLeads(prev => prev.map(lead => {
+            if (lead.id_conversa_chatwoot !== conversationId) return lead
+            return {
+              ...lead,
+              ultima_mensagem: (data?.last_activity_at as string | undefined) ?? lead.ultima_mensagem,
+            }
+          }))
+        }
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+      supabase.removeChannel(columnsChannel)
+      supabase.removeChannel(eventsChannel)
+    }
+  }, [])
+
+  async function loadAll() {
+    setLoading(true)
+    setError(null)
+    await Promise.all([loadLeads(), loadColumns()])
+    setLoading(false)
+  }
+
+  async function loadLeads() {
+    const { data, error: err } = await supabase
+      .from('leads_contabilidade')
+      .select('id, nome_lead, whatsapp_lead, motivo_contato, resumo_conversa, ultima_mensagem, status, created_at, horario_comercial, data_agendamento, agendamento_criado_em, anotacoes, follow_up_1, follow_up_2, follow_up_3, id_conversa_chatwoot, inbox_id_chatwoot')
+      .order('created_at', { ascending: false })
+    if (err) {
+      setError(err.message)
+      return
+    }
+    setLeads((data ?? []) as Lead[])
+  }
+
+  async function loadColumns() {
+    const { data, error: err } = await supabase
+      .from('chat_kanban_columns')
+      .select('id, status_key, label, color, bg, border, ordem, ativo')
+      .order('ordem', { ascending: true })
+    if (err) {
+      return
+    }
+    const mapped = (data ?? []).map(item => ({
+      id: item.id,
+      status_key: item.status_key,
+      label: item.label,
+      color: item.color,
+      bg: item.bg,
+      border: item.border,
+      ordem: item.ordem,
+      ativo: item.ativo,
+    })) as ColumnConfig[]
+    setColumns((mapped.length > 0 ? mapped : DEFAULT_COLUMNS).sort((a, b) => a.ordem - b.ordem))
+  }
+
+  async function persistColumnOrder(nextColumns: ColumnConfig[]) {
+    setColumns(nextColumns)
+    await Promise.all(
+      nextColumns.map((column, index) =>
+        supabase.from('chat_kanban_columns').update({ ordem: index + 1 }).eq('id', column.id),
+      ),
+    )
+  }
+
+  async function moveColumn(columnId: string, direction: -1 | 1) {
+    const index = columns.findIndex(column => column.id === columnId)
+    const targetIndex = index + direction
+    if (index < 0 || targetIndex < 0 || targetIndex >= columns.length) return
+    const nextColumns = [...columns]
+    const [moved] = nextColumns.splice(index, 1)
+    nextColumns.splice(targetIndex, 0, moved)
+    await persistColumnOrder(nextColumns.map((column, position) => ({ ...column, ordem: position + 1 })))
+  }
+
+  async function handleDragEnd(event: DragEndEvent) {
+    setActiveId(null)
+    const { active, over } = event
+    if (!over) return
+    const newStatus = String(over.id)
+    const lead = leads.find(item => item.id === active.id)
+    if (!lead || lead.status === newStatus) return
+    setLeads(prev => prev.map(item => item.id === lead.id ? { ...item, status: newStatus } : item))
+    const { error: err } = await supabase.from('leads_contabilidade').update({ status: newStatus }).eq('id', lead.id)
+    if (err) {
+      await loadLeads()
+      alert('Erro ao mover contato: ' + err.message)
+    }
+  }
+
+  async function saveQuickAction() {
+    if (!quickModal) return
+    setSavingQuick(true)
+    const updates: Record<string, unknown> = { status: quickModal.suggestedStatus }
+    if (quickModal.suggestedStatus === 'agendado' && reagendarEm) {
+      updates.data_agendamento = reagendarEm
+      updates.agendamento_criado_em = new Date().toISOString()
+      if (reagendarObs.trim()) updates.anotacoes = reagendarObs.trim()
+    }
+    const { error: err } = await supabase.from('leads_contabilidade').update(updates).eq('id', quickModal.lead.id)
+    setSavingQuick(false)
+    if (err) {
+      alert('Erro ao salvar: ' + err.message)
+      return
+    }
+    setLeads(prev => prev.map(item => item.id === quickModal.lead.id ? { ...item, ...updates } as Lead : item))
+    setQuickModal(null)
+    setReagendarEm('')
+    setReagendarObs('')
+  }
+
+  async function saveLead() {
+    setSavingLead(true)
+    const payload = {
+      nome_lead: leadForm.nome_lead || null,
+      whatsapp_lead: leadForm.whatsapp_lead || null,
+      motivo_contato: leadForm.motivo_contato || null,
+      resumo_conversa: leadForm.resumo_conversa || null,
+      ultima_mensagem: leadForm.ultima_mensagem || null,
+      anotacoes: leadForm.anotacoes || null,
+      data_agendamento: leadForm.data_agendamento || null,
+      status: leadForm.status,
+    }
+
+    const query = leadModal?.mode === 'editar' && leadModal.lead
+      ? supabase.from('leads_contabilidade').update(payload).eq('id', leadModal.lead.id)
+      : supabase.from('leads_contabilidade').insert([{ ...payload, created_at: new Date().toISOString() }])
+
+    const { data, error: err } = await query.select('*').single()
+    setSavingLead(false)
+    if (err) {
+      alert('Erro ao salvar contato: ' + err.message)
+      return
+    }
+
+    if (leadModal?.mode === 'editar' && leadModal.lead) {
+      setLeads(prev => prev.map(item => item.id === leadModal.lead!.id ? data as Lead : item))
+    } else {
+      setLeads(prev => [data as Lead, ...prev])
+    }
+
+    setLeadModal(null)
+    setLeadForm(emptyLeadForm())
+  }
+
+  async function deleteLead(lead: Lead) {
+    if (!confirm(`Excluir o contato ${lead.nome_lead || 'sem nome'}?`)) return
+    const { error: err } = await supabase.from('leads_contabilidade').delete().eq('id', lead.id)
+    if (err) {
+      alert('Erro ao excluir contato: ' + err.message)
+      return
+    }
+    setLeads(prev => prev.filter(item => item.id !== lead.id))
+  }
+
+  async function loadChatwoot() {
+    const { data } = await supabase
+      .from('external_integrations')
+      .select('base_url, api_token, account_id, inbox_id')
+      .eq('provider', 'chatwoot')
+      .eq('status', 'ativo')
+      .maybeSingle()
+    if (data?.base_url && data?.api_token && data?.account_id) {
+      setChatwoot({
+        base_url:   data.base_url   as string,
+        api_token:  data.api_token  as string,
+        account_id: data.account_id as string,
+        inbox_id:   (data.inbox_id  as string | null) ?? null,
+      })
+    }
+  }
+
+  function openWhatsApp(lead: Lead) {
+    if (chatwoot) {
+      setChatLead(lead)
+      return
+    }
+    // Fallback quando Chatwoot não está configurado
+    if (!lead.whatsapp_lead) return
+    const digits = lead.whatsapp_lead.replace(/\D/g, '')
+    const text = encodeURIComponent(`Olá ${lead.nome_lead || 'cliente'}, tudo bem?`)
+    window.open(`https://wa.me/55${digits}?text=${text}`, '_blank', 'noopener,noreferrer')
+  }
+
+  function openQuickModal(lead: Lead, suggestedStatus: StatusLead) {
+    setQuickModal({ lead, suggestedStatus })
+    setReagendarEm(lead.data_agendamento ?? '')
+    setReagendarObs(lead.anotacoes ?? '')
+  }
+
+  function openNewLead() {
+    setLeadModal({ mode: 'novo' })
+    setLeadForm(emptyLeadForm())
+  }
+
+  function openEditLead(lead: Lead) {
+    setLeadModal({ mode: 'editar', lead })
+    setLeadForm({
+      nome_lead: lead.nome_lead || '',
+      whatsapp_lead: lead.whatsapp_lead || '',
+      motivo_contato: lead.motivo_contato || '',
+      resumo_conversa: lead.resumo_conversa || '',
+      ultima_mensagem: lead.ultima_mensagem || '',
+      anotacoes: lead.anotacoes || '',
+      data_agendamento: lead.data_agendamento || '',
+      status: lead.status || 'iniciou_conversa',
+    })
+  }
+
+  function openNewColumn() {
+    setColumnModal({ mode: 'novo', column: emptyColumnForm() })
+  }
+
+  function openEditColumn(column: ColumnConfig) {
+    setColumnModal({ mode: 'editar', column })
+  }
+
+  async function saveColumn() {
+    if (!columnModal) return
+    setSavingColumn(true)
+    const column = columnModal.column
+    const payload = {
+      status_key: column.status_key.trim(),
+      label: column.label.trim(),
+      color: column.color.trim(),
+      bg: column.bg.trim(),
+      border: column.border.trim(),
+      ordem: Number(column.ordem) || 0,
+      ativo: column.ativo,
+    }
+
+    const query = columnModal.mode === 'editar' && column.id
+      ? supabase.from('chat_kanban_columns').update(payload).eq('id', column.id)
+      : supabase.from('chat_kanban_columns').insert([payload])
+
+    const { error: err } = await query
+    setSavingColumn(false)
+    if (err) {
+      alert('Erro ao salvar coluna: ' + err.message)
+      return
+    }
+    setColumnModal(null)
+    await loadColumns()
+  }
+
+  async function deleteColumn() {
+    if (!columnModal?.column.id) return
+    const column = columnModal.column
+    const inUse = leads.filter(lead => lead.status === column.status_key)
+    if (inUse.length > 0) {
+      const fallback = 'iniciou_conversa'
+      const { error: moveError } = await supabase.from('leads_contabilidade').update({ status: fallback }).eq('status', column.status_key)
+      if (moveError) {
+        alert('Não foi possível mover os leads antes de excluir: ' + moveError.message)
+        return
+      }
+    }
+    const { error: err } = await supabase.from('chat_kanban_columns').delete().eq('id', column.id)
+    if (err) {
+      alert('Erro ao excluir coluna: ' + err.message)
+      return
+    }
+    setColumnModal(null)
+    await loadColumns()
+    await loadLeads()
+  }
+
+  const activeLead = leads.find(item => item.id === activeId)
+  const totalContatos = useMemo(() => leads.length, [leads])
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-gray-500 dark:text-gray-400">{loading ? '…' : `${totalContatos} contatos`}</span>
+          <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
+            <button type="button" onClick={() => setView('kanban')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors', view === 'kanban' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+              <Columns size={14} /> Kanban
+            </button>
+            <button type="button" onClick={() => setView('lista')} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors', view === 'lista' ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300')}>
+              <List size={14} /> Lista
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={openNewLead} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium">
+            <UserPlus size={14} /> Novo contato
+          </button>
+          <button type="button" onClick={openNewColumn} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+            <Plus size={14} /> Coluna
+          </button>
+          <button type="button" onClick={() => openEditColumn(columns[0] ?? DEFAULT_COLUMNS[0])} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-xs font-medium hover:bg-gray-200 dark:hover:bg-gray-700">
+            <Settings2 size={14} /> Colunas
+          </button>
+        </div>
+      </div>
+
+      {loading && <div className="flex-1 flex items-center justify-center text-gray-400 animate-pulse">Carregando contatos...</div>}
+      {error && <div className="p-6"><div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 rounded-lg p-4 text-sm">Erro: {error}</div></div>}
+
+      {!loading && !error && view === 'kanban' && (
+        <DndContext sensors={sensors} onDragStart={event => setActiveId(event.active.id as string)} onDragEnd={handleDragEnd}>
+          <div className="flex-1 overflow-x-auto p-6">
+            <div className="flex gap-4 h-full" style={{ minWidth: `${columns.length * 296}px` }}>
+              {columns.map(column => {
+                const colLeads = leads.filter(lead => lead.status === column.status_key)
+                return (
+                  <KanbanColumn
+                    key={column.id}
+                    column={column}
+                    leads={colLeads}
+                    hoveredId={hoveredId}
+                    onHover={setHoveredId}
+                    onOpenModal={openQuickModal}
+                    onOpenEdit={openEditLead}
+                    onDelete={deleteLead}
+                    onOpenWhatsApp={openWhatsApp}
+                    onEditColumn={openEditColumn}
+                    onMoveColumn={moveColumn}
+                  />
+                )
+              })}
+            </div>
+          </div>
+          <DragOverlay>
+            {activeLead ? (
+              <LeadCard
+                lead={activeLead}
+                color="#3b82f6"
+                isDragging
+                hovered={false}
+                onQuickMessage={() => undefined}
+                onQuickEdit={() => undefined}
+                onSchedule={() => undefined}
+                onEdit={() => undefined}
+                onDelete={() => undefined}
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      {!loading && !error && view === 'lista' && (
+        <div className="flex-1 overflow-auto p-6">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left">
+                  <th className="px-5 py-3">Nome</th>
+                  <th className="px-5 py-3">WhatsApp</th>
+                  <th className="px-5 py-3">Motivo do Contato</th>
+                  <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Criado em</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                {leads.length === 0 ? (
+                  <tr><td colSpan={5} className="px-5 py-8 text-center text-gray-400">Nenhum contato encontrado.</td></tr>
+                ) : leads.map(lead => (
+                  <tr key={lead.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                    <td className="px-5 py-3 font-medium">{lead.nome_lead || '—'}</td>
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400">{lead.whatsapp_lead || '—'}</td>
+                    <td className="px-5 py-3 text-gray-500 dark:text-gray-400 max-w-xs truncate">{lead.motivo_contato || '—'}</td>
+                    <td className="px-5 py-3"><StatusPill status={lead.status} /></td>
+                    <td className="px-5 py-3 text-gray-400 text-xs">{new Date(lead.created_at).toLocaleDateString('pt-BR')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {quickModal && (
+        <QuickActionModal
+          quickModal={quickModal}
+          onClose={() => setQuickModal(null)}
+          onStatusChange={status => setQuickModal({ ...quickModal, suggestedStatus: status })}
+          onSave={saveQuickAction}
+          onOpenWhatsApp={() => openWhatsApp(quickModal.lead)}
+          saving={savingQuick}
+          reagendarEm={reagendarEm}
+          setReagendarEm={setReagendarEm}
+          reagendarObs={reagendarObs}
+          setReagendarObs={setReagendarObs}
+        />
+      )}
+
+      {leadModal && (
+        <LeadEditorModal
+          mode={leadModal.mode}
+          lead={leadModal.lead}
+          form={leadForm}
+          setForm={setLeadForm}
+          onClose={() => setLeadModal(null)}
+          onSave={saveLead}
+          onDelete={leadModal.mode === 'editar' && leadModal.lead ? () => deleteLead(leadModal.lead!) : undefined}
+          saving={savingLead}
+        />
+      )}
+
+      {columnModal && (
+        <ColumnEditorModal
+          mode={columnModal.mode}
+          column={columnModal.column}
+          onChange={next => setColumnModal({ ...columnModal, column: next })}
+          onClose={() => setColumnModal(null)}
+          onSave={saveColumn}
+          onDelete={columnModal.mode === 'editar' ? deleteColumn : undefined}
+          saving={savingColumn}
+        />
+      )}
+
+      {chatLead && chatwoot && (
+        <ChatPanel
+          lead={chatLead}
+          chatwoot={chatwoot}
+          onClose={() => setChatLead(null)}
+        />
+      )}
+
+    </div>
+  )
+}
+
+function KanbanColumn({
+  column,
+  leads,
+  hoveredId,
+  onHover,
+  onOpenModal,
+  onOpenEdit,
+  onDelete,
+  onOpenWhatsApp,
+  onEditColumn,
+  onMoveColumn,
+}: {
+  column: ColumnConfig
+  leads: Lead[]
+  hoveredId: string | null
+  onHover: (id: string | null) => void
+  onOpenModal: (lead: Lead, status: StatusLead) => void
+  onOpenEdit: (lead: Lead) => void
+  onDelete: (lead: Lead) => void
+  onOpenWhatsApp: (lead: Lead) => void
+  onEditColumn: (column: ColumnConfig) => void
+  onMoveColumn: (columnId: string, direction: -1 | 1) => void
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id: column.status_key })
+  return (
+    <div ref={setNodeRef} className={cn('flex flex-col rounded-2xl border transition-colors', column.border, column.bg, isOver && 'ring-2 ring-blue-400')} style={{ minWidth: 280, width: 280 }}>
+      <div className="rounded-t-2xl px-4 py-3 flex items-center justify-between gap-2" style={{ backgroundColor: column.color }}>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="text-white font-semibold text-sm truncate">{column.label}</span>
+            <button type="button" onClick={() => onEditColumn(column)} title="Editar coluna" className="text-white/90 hover:text-white">
+              <Pencil size={13} />
+            </button>
+            <button type="button" onClick={() => onMoveColumn(column.id, -1)} title="Mover para a esquerda" className="text-white/90 hover:text-white">
+              <ChevronLeft size={13} />
+            </button>
+            <button type="button" onClick={() => onMoveColumn(column.id, 1)} title="Mover para a direita" className="text-white/90 hover:text-white">
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </div>
+        <span className="bg-white/25 text-white text-xs font-bold px-2 py-0.5 rounded-full">{leads.length}</span>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+        {leads.map(lead => (
+          <DraggableCard
+            key={lead.id}
+            lead={lead}
+            color={column.color}
+            hovered={hoveredId === lead.id}
+            onHover={onHover}
+            onOpenModal={onOpenModal}
+            onOpenEdit={onOpenEdit}
+            onDelete={onDelete}
+            onOpenWhatsApp={onOpenWhatsApp}
+          />
+        ))}
+        {leads.length === 0 && <p className="text-xs text-gray-400 text-center py-4">Nenhum lead</p>}
+      </div>
+    </div>
+  )
+}
+
+function DraggableCard({
+  lead,
+  color,
+  hovered,
+  onHover,
+  onOpenModal,
+  onOpenEdit,
+  onDelete,
+  onOpenWhatsApp,
+}: {
+  lead: Lead
+  color: string
+  hovered: boolean
+  onHover: (id: string | null) => void
+  onOpenModal: (lead: Lead, status: StatusLead) => void
+  onOpenEdit: (lead: Lead) => void
+  onDelete: (lead: Lead) => void
+  onOpenWhatsApp: (lead: Lead) => void
+}) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: lead.id })
+  const nextStatus = nextSuggestedStatus(lead.status)
+  return (
+    <div ref={setNodeRef} {...listeners} {...attributes} onMouseEnter={() => onHover(lead.id)} onMouseLeave={() => onHover(null)} style={{ opacity: isDragging ? 0.4 : 1 }} className="relative">
+      <LeadCard
+        lead={lead}
+        color={color}
+        isDragging={isDragging}
+        hovered={hovered}
+        onQuickMessage={() => onOpenWhatsApp(lead)}
+        onQuickEdit={() => onOpenModal(lead, nextStatus)}
+        onSchedule={() => onOpenModal(lead, 'agendado')}
+        onEdit={() => onOpenEdit(lead)}
+        onDelete={() => onDelete(lead)}
+      />
+    </div>
+  )
+}
+
+function LeadCard({
+  lead,
+  color,
+  isDragging,
+  hovered,
+  onQuickMessage,
+  onQuickEdit,
+  onSchedule,
+  onEdit,
+  onDelete,
+}: {
+  lead: Lead
+  color: string
+  isDragging?: boolean
+  hovered?: boolean
+  onQuickMessage: () => void
+  onQuickEdit: () => void
+  onSchedule: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
+  return (
+    <div className={cn('group bg-white dark:bg-[#1E2535] rounded-xl p-3 shadow-sm border border-gray-100 dark:border-gray-700 cursor-grab hover:-translate-y-0.5 transition-transform', isDragging && 'shadow-lg cursor-grabbing')} style={{ borderLeftWidth: 4, borderLeftColor: color }}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{lead.nome_lead || 'Sem nome'}</p>
+          <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5 truncate">{lead.whatsapp_lead || 'Sem WhatsApp'}</p>
+        </div>
+        <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400">{STATUS_LABEL[lead.status] ?? lead.status}</span>
+      </div>
+
+      <div className="mt-2 space-y-1.5">
+        <InfoLine label="Produto" value={lead.motivo_contato || 'Não informado'} />
+        <InfoLine label="Última msg" value={lead.ultima_mensagem || lead.resumo_conversa || 'Sem histórico'} />
+        <InfoLine label="Atributos" value={buildAttributes(lead)} />
+      </div>
+
+      <div className={cn('mt-3 flex flex-wrap items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity', hovered && 'opacity-100')}>
+        <QuickButton icon={<MessageCircle size={13} />} label="Chat" onClick={onQuickMessage} />
+        <QuickButton icon={<ArrowRightLeft size={13} />} label="Etapa" onClick={onQuickEdit} />
+        <QuickButton icon={<CalendarClock size={13} />} label="Retorno" onClick={onSchedule} />
+        <QuickButton icon={<Pencil size={13} />} label="Editar" onClick={onEdit} />
+        <QuickButton icon={<Trash2 size={13} />} label="Excluir" onClick={onDelete} />
+      </div>
+    </div>
+  )
+}
+
+function QuickActionModal({
+  quickModal,
+  onClose,
+  onStatusChange,
+  onSave,
+  onOpenWhatsApp,
+  saving,
+  reagendarEm,
+  setReagendarEm,
+  reagendarObs,
+  setReagendarObs,
+}: {
+  quickModal: QuickModal
+  onClose: () => void
+  onStatusChange: (status: StatusLead) => void
+  onSave: () => void
+  onOpenWhatsApp: () => void
+  saving: boolean
+  reagendarEm: string
+  setReagendarEm: (value: string) => void
+  reagendarObs: string
+  setReagendarObs: (value: string) => void
+}) {
+  if (!quickModal) return null
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Ação rápida</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{quickModal.lead.nome_lead || 'Sem nome'}</p>
+          </div>
+          <button type="button" onClick={onClose} title="Fechar" aria-label="Fechar" className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-400">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <LeadPreview lead={quickModal.lead} />
+          <div className="grid grid-cols-2 gap-2">
+            {STATUS_ORDER.map(status => (
+              <button key={status} type="button" onClick={() => onStatusChange(status)} className={cn('px-3 py-2 rounded-lg text-xs font-medium border transition-colors text-left', quickModal.suggestedStatus === status ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300' : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800')}>
+                {STATUS_LABEL[status]}
+              </button>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={onOpenWhatsApp} className="px-3 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-700 text-white flex items-center justify-center gap-2">
+              <MessageCircle size={14} /> Conversar
+            </button>
+            <button type="button" onClick={() => onStatusChange('agendado')} className="px-3 py-2 rounded-lg text-sm font-medium bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-center gap-2">
+              <CalendarClock size={14} /> Agendar retorno
+            </button>
+          </div>
+          {quickModal.suggestedStatus === 'agendado' && (
+            <div className="grid grid-cols-1 gap-3">
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Data e hora do retorno</span>
+                <input type="datetime-local" value={reagendarEm} onChange={e => setReagendarEm(e.target.value)} className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </label>
+              <label className="flex flex-col gap-1">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Observação</span>
+                <textarea value={reagendarObs} onChange={e => setReagendarObs(e.target.value)} rows={3} className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="Ex: ligar após envio da proposta" />
+              </label>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onSave} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium flex items-center justify-center gap-2">
+              <Pencil size={14} /> {saving ? 'Salvando...' : 'Salvar'}
+            </button>
+            <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LeadPreview({ lead }: { lead: Lead }) {
+  return (
+    <div className="grid grid-cols-1 gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-3 text-xs">
+      <PreviewRow icon={<Phone size={12} />} label="WhatsApp" value={lead.whatsapp_lead || 'Não informado'} />
+      <PreviewRow icon={<Mail size={12} />} label="Produto" value={lead.motivo_contato || 'Não informado'} />
+      <PreviewRow icon={<Clock3 size={12} />} label="Última mensagem" value={lead.ultima_mensagem || lead.resumo_conversa || 'Sem histórico'} />
+      <PreviewRow icon={<Pencil size={12} />} label="Atributos" value={buildAttributes(lead)} />
+    </div>
+  )
+}
+
+function PreviewRow({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2">
+      <span className="mt-0.5 text-gray-400">{icon}</span>
+      <div className="min-w-0">
+        <p className="text-[10px] uppercase tracking-wide text-gray-400">{label}</p>
+        <p className="text-gray-700 dark:text-gray-200 break-words">{value}</p>
+      </div>
+    </div>
+  )
+}
+
+function InfoLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start gap-2 text-xs">
+      <span className="w-16 shrink-0 text-gray-400">{label}</span>
+      <span className="min-w-0 text-gray-600 dark:text-gray-300 break-words">{value}</span>
+    </div>
+  )
+}
+
+function QuickButton({ icon, label, onClick }: { icon: ReactNode; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 transition-colors">
+      {icon}
+      {label}
+    </button>
+  )
+}
+
+function buildAttributes(lead: Lead) {
+  const attrs = [
+    lead.horario_comercial ? 'horario comercial' : null,
+    lead.data_agendamento ? `retorno ${new Date(lead.data_agendamento).toLocaleDateString('pt-BR')}` : null,
+    lead.inbox_id_chatwoot ? `inbox ${lead.inbox_id_chatwoot}` : null,
+  ].filter(Boolean)
+  return attrs.length > 0 ? attrs.join(' · ') : 'Sem atributos'
+}
+
+function nextSuggestedStatus(status: StatusLead): StatusLead {
+  const index = STATUS_ORDER.indexOf(status)
+  return STATUS_ORDER[Math.min(index + 1, STATUS_ORDER.length - 1)] as StatusLead
+}
+
+function StatusPill({ status }: { status: StatusLead }) {
+  const col = DEFAULT_COLUMNS.find(column => column.id === status)
+  return (
+    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white" style={{ backgroundColor: col?.color ?? '#6B7280' }}>
+      {STATUS_LABEL[status] ?? status}
+    </span>
+  )
+}
+
+function LeadEditorModal({
+  mode,
+  lead,
+  form,
+  setForm,
+  onClose,
+  onSave,
+  onDelete,
+  saving,
+}: {
+  mode: 'novo' | 'editar'
+  lead?: Lead
+  form: LeadFormState
+  setForm: (next: LeadFormState) => void
+  onClose: () => void
+  onSave: () => void
+  onDelete?: () => void
+  saving: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{mode === 'novo' ? 'Novo contato' : 'Editar contato'}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{lead?.nome_lead || 'Preencha os dados principais'}</p>
+          </div>
+          <button type="button" onClick={onClose} title="Fechar" aria-label="Fechar" className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-400">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <TextInput label="Nome" value={form.nome_lead} onChange={value => setForm({ ...form, nome_lead: value })} />
+            <TextInput label="WhatsApp" value={form.whatsapp_lead} onChange={value => setForm({ ...form, whatsapp_lead: value })} />
+            <TextInput label="Produto" value={form.motivo_contato} onChange={value => setForm({ ...form, motivo_contato: value })} />
+            <SelectInput label="Etapa" value={form.status} onChange={value => setForm({ ...form, status: value as StatusLead })} options={DEFAULT_COLUMNS.map(column => ({ value: column.id, label: column.label }))} />
+            <TextInput label="Última mensagem" value={form.ultima_mensagem} onChange={value => setForm({ ...form, ultima_mensagem: value })} className="md:col-span-2" />
+            <TextInput label="Agendar retorno" type="datetime-local" value={form.data_agendamento} onChange={value => setForm({ ...form, data_agendamento: value })} />
+            <TextInput label="Observações" value={form.anotacoes} onChange={value => setForm({ ...form, anotacoes: value })} className="md:col-span-2" />
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onSave} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium flex items-center justify-center gap-2">
+              <Save size={14} /> {saving ? 'Salvando...' : 'Salvar contato'}
+            </button>
+            {mode === 'editar' && onDelete && (
+              <button type="button" onClick={onDelete} className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 flex items-center gap-2">
+                <Trash2 size={14} /> Excluir
+              </button>
+            )}
+            <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+              Fechar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ColumnEditorModal({
+  mode,
+  column,
+  onChange,
+  onClose,
+  onSave,
+  onDelete,
+  saving,
+}: {
+  mode: 'novo' | 'editar'
+  column: ColumnConfig
+  onChange: (next: ColumnConfig) => void
+  onClose: () => void
+  onSave: () => void
+  onDelete?: () => void
+  saving: boolean
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 shadow-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{mode === 'novo' ? 'Nova coluna' : 'Editar coluna'}</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">{column.status_key || 'Defina a chave da etapa'}</p>
+          </div>
+          <button type="button" onClick={onClose} title="Fechar" aria-label="Fechar" className="w-8 h-8 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center justify-center text-gray-400">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="p-5 space-y-4">
+          <TextInput label="Chave da etapa" value={column.status_key} onChange={value => onChange({ ...column, status_key: value })} />
+          <TextInput label="Nome da coluna" value={column.label} onChange={value => onChange({ ...column, label: value })} />
+          <TextInput label="Cor" value={column.color} onChange={value => onChange({ ...column, color: value })} />
+          <TextInput label="Fundo" value={column.bg} onChange={value => onChange({ ...column, bg: value })} />
+          <TextInput label="Borda" value={column.border} onChange={value => onChange({ ...column, border: value })} />
+          <TextInput label="Ordem" type="number" value={String(column.ordem)} onChange={value => onChange({ ...column, ordem: Number(value) || 0 })} />
+          <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <input type="checkbox" checked={column.ativo} onChange={e => onChange({ ...column, ativo: e.target.checked })} />
+            Ativa
+          </label>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onSave} disabled={saving} className="flex-1 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-medium flex items-center justify-center gap-2">
+              <Save size={14} /> {saving ? 'Salvando...' : 'Salvar coluna'}
+            </button>
+            {mode === 'editar' && onDelete && (
+              <button type="button" onClick={onDelete} className="px-4 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/20 flex items-center gap-2">
+                <Trash2 size={14} /> Remover
+              </button>
+            )}
+            <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">
+              Fechar
+            </button>
+          </div>
+          <p className="text-[11px] text-gray-400">
+            A coluna é persistida no banco e o status do lead agora é texto, então podemos criar, editar e remover etapas customizadas.
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function TextInput({ label, value, onChange, type = 'text', className }: { label: string; value: string; onChange: (value: string) => void; type?: string; className?: string }) {
+  return (
+    <label className={cn('flex flex-col gap-1', className)}>
+      <span className="text-xs text-gray-500">{label}</span>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </label>
+  )
+}
+
+function SelectInput({ label, value, onChange, options }: { label: string; value: string; onChange: (value: string) => void; options: { value: string; label: string }[] }) {
+  return (
+    <label className="flex flex-col gap-1">
+      <span className="text-xs text-gray-500">{label}</span>
+      <select value={value} onChange={e => onChange(e.target.value)} className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+        {options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </label>
+  )
+}
