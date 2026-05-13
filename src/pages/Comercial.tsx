@@ -66,7 +66,7 @@ const TIPO_VENDA_LABEL: Record<TipoVenda, string> = {
 }
 
 const EMPTY_VENDA: NovaVenda = {
-  cliente_id: null, certificado_id: null, cliente: '', tipo_certificado: 'e-CPF A1', tipo_venda: 'presencial', canal: 'balcao',
+  cliente_id: null, certificado_id: null, cliente: '', cliente_nome: null, tipo_certificado: 'e-CPF A1', tipo_venda: 'presencial', canal: 'balcao',
   forma_pagamento: 'PIX', valor: 0, status: 'confirmado',
   parceiro_id: null, data_venda: new Date().toISOString().split('T')[0], observacoes: null,
 }
