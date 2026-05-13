@@ -19,7 +19,7 @@ jobs:
       - name: Deploy na VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          host: 147.79.111.76
+          username: root
           key_path: /tmp/deploy_key
           script: bash /opt/certiid/deploy.sh
