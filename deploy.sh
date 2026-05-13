@@ -10,3 +10,5 @@ docker build \
 docker stack rm certiid 2>/dev/null || true
 sleep 10
 docker stack deploy -c docker-compose.yml certiid
+
+# deploy triggered
