@@ -3,6 +3,7 @@ import { Loader2, Pencil, X, Check, KeyRound, UserPlus, Eye, EyeOff, MessageCirc
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
+import { DEFAULT_AGENCY_CONFIG, type AgencyConfig, fetchAgencyConfig } from '@/lib/agencyConfig'
 import { useAuth } from '@/contexts/AuthContext'
 import type {
   AutomationRule,
@@ -66,13 +67,6 @@ const DEFAULT_PERMISSIONS: Record<PerfilAcesso, PermissaoPagina[]> = {
   usuario:         ['dashboard', 'relatorios'],
 }
 
-type AgencyConfig = {
-  nome_agencia: string
-  responsavel: string
-  telefone: string
-  cidade: string
-}
-
 type UserEditForm = {
   nome: string
   email: string
@@ -86,13 +80,6 @@ type UserEditForm = {
   cidade: string
   observacoes: string
   permissoes: PermissaoPagina[]
-}
-
-const DEFAULT_AGENCY_CONFIG: AgencyConfig = {
-  nome_agencia: 'AR CERTI ID',
-  responsavel: 'Alexandre Aparecido Mantovan',
-  telefone: '+55 11 9508-9218',
-  cidade: 'São Paulo - SP',
 }
 
 type ModalSenha = { userId: string; nome: string } | null
@@ -190,11 +177,7 @@ function AbaGeral() {
   const load = useCallback(async () => {
     setLoading(true)
     setErro(null)
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('value')
-      .eq('key', 'agency')
-      .maybeSingle()
+    const { data, error } = await fetchAgencyConfig()
 
     if (error) {
       setErro(`Erro ao carregar configurações: ${error.message}. Execute sql/settings_users_permissions_migration.sql no Supabase.`)
@@ -202,9 +185,7 @@ function AbaGeral() {
       return
     }
 
-    if (data?.value && typeof data.value === 'object') {
-      setForm({ ...DEFAULT_AGENCY_CONFIG, ...(data.value as Partial<AgencyConfig>) })
-    }
+    setForm(data)
     setLoading(false)
   }, [])
 
@@ -248,6 +229,50 @@ function AbaGeral() {
         <ConfigInput label="Responsável" value={form.responsavel} onChange={v => updateField('responsavel', v)} />
         <ConfigInput label="Telefone" value={form.telefone} onChange={v => updateField('telefone', v)} />
         <ConfigInput label="Cidade" value={form.cidade} onChange={v => updateField('cidade', v)} />
+        <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
+          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Identidade visual do login</h3>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Aqui você pode trocar a logomarca, textos e cores da tela inicial sem mexer no código.
+          </p>
+        </div>
+        <ConfigInput
+          label="URL da logomarca"
+          value={form.logo_url}
+          onChange={v => updateField('logo_url', v)}
+          placeholder="https://seusite.com/logo.png"
+        />
+        <ConfigInput label="Título do login" value={form.login_titulo} onChange={v => updateField('login_titulo', v)} />
+        <ConfigInput label="Subtítulo do login" value={form.login_subtitulo} onChange={v => updateField('login_subtitulo', v)} />
+        <div className="grid gap-4 md:grid-cols-3">
+          <ConfigInput label="Cor principal" value={form.cor_primaria} onChange={v => updateField('cor_primaria', v)} placeholder="#2563eb" />
+          <ConfigInput label="Fundo inicial" value={form.fundo_inicio} onChange={v => updateField('fundo_inicio', v)} placeholder="#172554" />
+          <ConfigInput label="Fundo final" value={form.fundo_fim} onChange={v => updateField('fundo_fim', v)} placeholder="#1e3a8a" />
+        </div>
+        <div
+          className="rounded-2xl p-5 text-white border border-white/10 shadow-inner"
+          style={{ background: `linear-gradient(135deg, ${form.fundo_inicio}, ${form.fundo_fim})` }}
+        >
+          <div className="flex items-center gap-4">
+            {form.logo_url.trim() ? (
+              <img
+                src={form.logo_url}
+                alt={form.login_titulo}
+                className="w-14 h-14 rounded-2xl object-contain bg-white/10 p-2"
+              />
+            ) : (
+              <div
+                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                style={{ backgroundColor: form.cor_primaria }}
+              >
+                <span className="text-lg font-bold">ID</span>
+              </div>
+            )}
+            <div>
+              <p className="text-lg font-semibold">{form.login_titulo}</p>
+              <p className="text-sm text-white/80">{form.login_subtitulo}</p>
+            </div>
+          </div>
+        </div>
 
         {erro && (
           <p className="text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">

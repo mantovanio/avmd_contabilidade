@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Shield, Eye, EyeOff, ArrowLeft, CheckCircle, Loader2, Mail } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { DEFAULT_AGENCY_CONFIG, fetchAgencyConfig } from '@/lib/agencyConfig'
 
 type View = 'login' | 'register' | 'forgot'
 
@@ -97,14 +98,25 @@ function ErrorBox({ msg }: { msg: string }) {
   )
 }
 
-function SubmitButton({ loading, label, loadingLabel }: { loading: boolean; label: string; loadingLabel: string }) {
+function SubmitButton({
+  loading,
+  label,
+  loadingLabel,
+  primaryColor,
+}: {
+  loading: boolean
+  label: string
+  loadingLabel: string
+  primaryColor: string
+}) {
   return (
     <button
       type="submit"
       disabled={loading}
-      className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60
+      className="w-full disabled:opacity-60
         text-white font-semibold rounded-xl py-3 text-sm transition-colors
         flex items-center justify-center gap-2"
+      style={{ backgroundColor: primaryColor }}
     >
       {loading ? (
         <>
@@ -119,6 +131,7 @@ function SubmitButton({ loading, label, loadingLabel }: { loading: boolean; labe
 export default function Login() {
   const { signIn, signUp, resetPassword } = useAuth()
   const [view, setView] = useState<View>('login')
+  const [agencyConfig, setAgencyConfig] = useState(DEFAULT_AGENCY_CONFIG)
 
   // login
   const [loginEmail,    setLoginEmail]    = useState('')
@@ -179,17 +192,41 @@ export default function Login() {
     setView('login')
   }
 
+  useEffect(() => {
+    let active = true
+
+    async function loadAgencyConfig() {
+      const { data } = await fetchAgencyConfig()
+      if (active) setAgencyConfig(data)
+    }
+
+    void loadAgencyConfig()
+    return () => { active = false }
+  }, [])
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-gray-900 to-blue-900 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: `linear-gradient(135deg, ${agencyConfig.fundo_inicio}, ${agencyConfig.fundo_fim})` }}
+    >
       <div className="w-full max-w-md">
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-4 shadow-lg shadow-blue-600/40">
-            <Shield size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">AR CERTI ID</h1>
-          <p className="text-blue-300/80 text-sm mt-1">Agência de Certificação Digital</p>
+          {agencyConfig.logo_url.trim() ? (
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-sm mb-4 shadow-lg p-3">
+              <img src={agencyConfig.logo_url} alt={agencyConfig.login_titulo} className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg"
+              style={{ backgroundColor: agencyConfig.cor_primaria, boxShadow: `0 18px 40px ${agencyConfig.cor_primaria}66` }}
+            >
+              <Shield size={28} className="text-white" />
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-white tracking-tight">{agencyConfig.login_titulo}</h1>
+          <p className="text-white/80 text-sm mt-1">{agencyConfig.login_subtitulo}</p>
         </div>
 
         {/* Card */}
@@ -220,7 +257,7 @@ export default function Login() {
 
                 {loginError && <ErrorBox msg={loginError} />}
 
-                <SubmitButton loading={loginLoading} label="Entrar" loadingLabel="Entrando..." />
+                <SubmitButton loading={loginLoading} label="Entrar" loadingLabel="Entrando..." primaryColor={agencyConfig.cor_primaria} />
               </form>
 
               <div className="mt-6 pt-6 border-t border-gray-100 dark:border-gray-800 text-center">
@@ -281,7 +318,7 @@ export default function Login() {
 
                   {regError && <ErrorBox msg={regError} />}
 
-                  <SubmitButton loading={regLoading} label="Criar conta" loadingLabel="Criando..." />
+                  <SubmitButton loading={regLoading} label="Criar conta" loadingLabel="Criando..." primaryColor={agencyConfig.cor_primaria} />
                 </form>
               )}
             </div>
@@ -324,15 +361,15 @@ export default function Login() {
 
                   {forgotError && <ErrorBox msg={forgotError} />}
 
-                  <SubmitButton loading={forgotLoading} label="Enviar link de recuperação" loadingLabel="Enviando..." />
+                  <SubmitButton loading={forgotLoading} label="Enviar link de recuperação" loadingLabel="Enviando..." primaryColor={agencyConfig.cor_primaria} />
                 </form>
               )}
             </div>
           )}
         </div>
 
-        <p className="text-center text-blue-400/50 text-xs mt-6">
-          © 2025 AVMD Contabilidade — CRM v1.0
+        <p className="text-center text-white/40 text-xs mt-6">
+          © 2026 {agencyConfig.nome_agencia}
         </p>
       </div>
     </div>

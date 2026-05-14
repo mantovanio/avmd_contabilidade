@@ -60,7 +60,7 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS "app_settings_select" ON public.app_settings;
 CREATE POLICY "app_settings_select" ON public.app_settings
-  FOR SELECT USING (auth.role() = 'authenticated');
+  FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "app_settings_insert" ON public.app_settings;
 CREATE POLICY "app_settings_insert" ON public.app_settings
@@ -123,3 +123,5 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- 5. Recarrega o schema cache usado pela API REST do Supabase/PostgREST
+NOTIFY pgrst, 'reload schema';

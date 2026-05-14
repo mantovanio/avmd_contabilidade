@@ -13,6 +13,7 @@ O projeto usa versionamento semântico:
 ### Adicionado
 
 - Configurações gerais da agência salvas no Supabase.
+- Personalização da tela de login pela aba Configurações > Geral, com logomarca, textos e cores.
 - Edição completa de usuários na aba Configurações > Usuários.
 - Campos administrativos no perfil do usuário: vínculo, parceiro, documento, telefone, cidade e observações.
 - Permissões por checkbox para definir quais áreas cada usuário pode acessar.
@@ -37,4 +38,3 @@ O projeto usa versionamento semântico:
 - Novos cadastros nascem inativos e aguardam liberação do administrador.
 - Manual de atualização do projeto.
 - README central com links úteis.
-
