@@ -13,6 +13,7 @@ import Parceiros from './pages/Parceiros'
 import Configuracoes from './pages/Configuracoes'
 import type { PerfilAcesso, PermissaoPagina } from './types'
 import { APP_VERSION } from './lib/version'
+import { DEFAULT_AGENCY_CONFIG, fetchAgencyConfig } from './lib/agencyConfig'
 
 const PAGE_LABELS: Record<Page, string> = {
   dashboard:     'Dashboard',
@@ -43,11 +44,24 @@ function AppContent() {
   const { user, profile, loading, signOut, isPasswordRecovery } = useAuth()
   const [page, setPage] = useState<Page>('dashboard')
   const [dark, setDark] = useState(() => localStorage.getItem('theme') === 'dark')
+  const [agencyConfig, setAgencyConfig] = useState(DEFAULT_AGENCY_CONFIG)
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
     localStorage.setItem('theme', dark ? 'dark' : 'light')
   }, [dark])
+
+  useEffect(() => {
+    let active = true
+
+    async function loadAgencyConfig() {
+      const { data } = await fetchAgencyConfig()
+      if (active) setAgencyConfig(data)
+    }
+
+    void loadAgencyConfig()
+    return () => { active = false }
+  }, [])
 
   if (loading) {
     return (
@@ -143,6 +157,7 @@ function AppContent() {
         onNavigate={handleNavigate}
         allowedPages={allowedPages}
         onLogout={handleLogout}
+        agencyConfig={agencyConfig}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="h-14 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex items-center justify-between px-6 shrink-0">
@@ -153,7 +168,7 @@ function AppContent() {
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium text-gray-700 dark:text-gray-300 leading-none">{nomeDisplay}</p>
               {perfilLabel && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{perfilLabel} — AR CERTI ID</p>
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{perfilLabel} — {agencyConfig.nome_agencia}</p>
               )}
             </div>
             <span className="hidden md:inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">

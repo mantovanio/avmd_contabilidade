@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { CheckCircle, Eye, EyeOff, KeyRound, Loader2, Shield } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
+import { DEFAULT_AGENCY_CONFIG, buildAuthBackground, fetchAgencyConfig } from '@/lib/agencyConfig'
 
 function translatePasswordError(msg: string) {
   if (msg.includes('Password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.'
@@ -52,11 +53,24 @@ function PasswordInput({
 
 export default function UpdatePassword() {
   const { updatePassword, signOut, finishPasswordRecovery } = useAuth()
+  const [agencyConfig, setAgencyConfig] = useState(DEFAULT_AGENCY_CONFIG)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    let active = true
+
+    async function loadAgencyConfig() {
+      const { data } = await fetchAgencyConfig()
+      if (active) setAgencyConfig(data)
+    }
+
+    void loadAgencyConfig()
+    return () => { active = false }
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -89,14 +103,26 @@ export default function UpdatePassword() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 via-gray-900 to-blue-900 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: buildAuthBackground(agencyConfig.fundo_inicio, agencyConfig.fundo_fim) }}
+    >
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-blue-600 mb-4 shadow-lg shadow-blue-600/40">
-            <Shield size={28} className="text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">AR CERTI ID</h1>
-          <p className="text-blue-300/80 text-sm mt-1">Redefinição de senha</p>
+          {agencyConfig.logo_url.trim() ? (
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-sm mb-4 shadow-lg p-3">
+              <img src={agencyConfig.logo_url} alt={agencyConfig.login_titulo} className="w-full h-full object-contain" />
+            </div>
+          ) : (
+            <div
+              className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 shadow-lg"
+              style={{ backgroundColor: agencyConfig.cor_primaria, boxShadow: `0 18px 40px ${agencyConfig.cor_primaria}66` }}
+            >
+              <Shield size={28} className="text-white" />
+            </div>
+          )}
+          <h1 className="text-2xl font-bold text-white tracking-tight">{agencyConfig.nome_agencia}</h1>
+          <p className="text-white/80 text-sm mt-1">Redefinição de senha</p>
         </div>
 
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden p-8">
@@ -111,13 +137,14 @@ export default function UpdatePassword() {
                   Sua nova senha já está ativa para os próximos acessos.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={enterSystem}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl py-3 text-sm transition-colors"
-              >
-                Entrar no sistema
-              </button>
+                <button
+                  type="button"
+                  onClick={enterSystem}
+                  className="w-full text-white font-semibold rounded-xl py-3 text-sm transition-colors"
+                  style={{ backgroundColor: agencyConfig.cor_primaria }}
+                >
+                  Entrar no sistema
+                </button>
             </div>
           ) : (
             <>
@@ -144,9 +171,10 @@ export default function UpdatePassword() {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 disabled:opacity-60
+                  className="w-full disabled:opacity-60
                     text-white font-semibold rounded-xl py-3 text-sm transition-colors
                     flex items-center justify-center gap-2"
+                  style={{ backgroundColor: agencyConfig.cor_primaria }}
                 >
                   {loading ? <><Loader2 size={16} className="animate-spin" /> Salvando...</> : 'Salvar nova senha'}
                 </button>

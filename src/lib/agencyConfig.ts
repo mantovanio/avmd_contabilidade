@@ -26,6 +26,13 @@ export const DEFAULT_AGENCY_CONFIG: AgencyConfig = {
   fundo_fim: '#1e3a8a',
 }
 
+export function buildAuthBackground(startColor: string, endColor: string) {
+  return `
+    radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 32%),
+    linear-gradient(145deg, ${startColor} 0%, #111827 48%, ${endColor} 100%)
+  `
+}
+
 export async function fetchAgencyConfig() {
   const { data, error } = await supabase
     .from('app_settings')

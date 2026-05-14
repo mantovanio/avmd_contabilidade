@@ -10,6 +10,7 @@ import {
   LogOut,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import type { AgencyConfig } from '@/lib/agencyConfig'
 
 export type Page =
   | 'dashboard'
@@ -26,6 +27,7 @@ interface Props {
   onNavigate: (page: Page) => void
   allowedPages?: Page[]
   onLogout?: () => void
+  agencyConfig?: AgencyConfig
 }
 
 const ALL_ITEMS: { id: Page; icon: React.ComponentType<{ size?: number }>; label: string }[] = [
@@ -39,16 +41,25 @@ const ALL_ITEMS: { id: Page; icon: React.ComponentType<{ size?: number }>; label
   { id: 'configuracoes', icon: Settings,        label: 'Configurações'   },
 ]
 
-export default function Sidebar({ activePage, onNavigate, allowedPages, onLogout }: Props) {
+export default function Sidebar({ activePage, onNavigate, allowedPages, onLogout, agencyConfig }: Props) {
   const items = allowedPages
     ? ALL_ITEMS.filter(i => allowedPages.includes(i.id))
     : ALL_ITEMS
 
   return (
     <aside className="w-16 flex flex-col items-center py-4 gap-1 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
-      <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-xs mb-3">
-        CD
-      </div>
+      {agencyConfig?.logo_url?.trim() ? (
+        <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 dark:border-gray-800 flex items-center justify-center p-1.5 mb-3 overflow-hidden">
+          <img src={agencyConfig.logo_url} alt={agencyConfig.nome_agencia} className="w-full h-full object-contain" />
+        </div>
+      ) : (
+        <div
+          className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-3"
+          style={{ backgroundColor: agencyConfig?.cor_primaria ?? '#2563eb' }}
+        >
+          ID
+        </div>
+      )}
 
       <nav className="flex flex-col items-center gap-1 flex-1">
         {items.map(({ id, icon: Icon, label }) => (

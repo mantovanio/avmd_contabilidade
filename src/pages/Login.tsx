@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Shield, Eye, EyeOff, ArrowLeft, CheckCircle, Loader2, Mail } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { DEFAULT_AGENCY_CONFIG, fetchAgencyConfig } from '@/lib/agencyConfig'
+import { DEFAULT_AGENCY_CONFIG, buildAuthBackground, fetchAgencyConfig } from '@/lib/agencyConfig'
 
 type View = 'login' | 'register' | 'forgot'
 
@@ -207,7 +207,7 @@ export default function Login() {
   return (
     <div
       className="min-h-screen flex items-center justify-center p-4"
-      style={{ background: `linear-gradient(135deg, ${agencyConfig.fundo_inicio}, ${agencyConfig.fundo_fim})` }}
+      style={{ background: buildAuthBackground(agencyConfig.fundo_inicio, agencyConfig.fundo_fim) }}
     >
       <div className="w-full max-w-md">
 
