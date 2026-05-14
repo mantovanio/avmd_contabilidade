@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   email      TEXT NOT NULL,
   perfil     TEXT NOT NULL DEFAULT 'usuario'
              CHECK (perfil IN ('admin', 'usuario', 'vendedor', 'agente_registro')),
-  status     TEXT NOT NULL DEFAULT 'ativo'
+  status     TEXT NOT NULL DEFAULT 'inativo'
              CHECK (status IN ('ativo', 'inativo')),
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
@@ -22,25 +22,33 @@ ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "profiles_select" ON public.profiles
   FOR SELECT USING (auth.role() = 'authenticated');
 
--- Usuário edita o próprio perfil; admin edita qualquer um
+-- Apenas administradores editam perfil/status de usuários
+DROP POLICY IF EXISTS "profiles_update" ON public.profiles;
 CREATE POLICY "profiles_update" ON public.profiles
   FOR UPDATE USING (
-    auth.uid() = id
-    OR EXISTS (
+    EXISTS (
+      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND perfil = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
       SELECT 1 FROM public.profiles WHERE id = auth.uid() AND perfil = 'admin'
     )
   );
+
+ALTER TABLE public.profiles ALTER COLUMN status SET DEFAULT 'inativo';
 
 -- 3. Trigger: cria perfil automaticamente no cadastro
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  INSERT INTO public.profiles (id, nome, email, perfil)
+  INSERT INTO public.profiles (id, nome, email, perfil, status)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1)),
     NEW.email,
-    COALESCE(NEW.raw_user_meta_data->>'perfil', 'usuario')
+    'usuario',
+    'inativo'
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;

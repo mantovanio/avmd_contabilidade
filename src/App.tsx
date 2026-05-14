@@ -68,7 +68,53 @@ function AppContent() {
 
   if (isPasswordRecovery) return <UpdatePassword />
 
-  const allowedPages = profile ? PAGE_ACCESS[profile.perfil] : PAGE_ACCESS['usuario']
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-950 via-gray-900 to-blue-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/40 p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl" aria-hidden="true">!</span>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Perfil aguardando configuração</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Não encontramos um perfil de acesso liberado para sua conta. Contate o administrador.
+          </p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-6 w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+          >
+            Voltar ao login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (profile?.status === 'inativo') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-950 via-gray-900 to-blue-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/40 p-8 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center mx-auto mb-4">
+            <span className="text-2xl" aria-hidden="true">!</span>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Acesso aguardando liberação</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+            Sua conta foi criada, mas o primeiro acesso precisa ser liberado pelo administrador.
+          </p>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="mt-6 w-full px-4 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition-colors"
+          >
+            Voltar ao login
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const allowedPages = PAGE_ACCESS[profile.perfil]
 
   // Se a página atual não estiver disponível para o perfil, volta ao dashboard
   const activePage: Page = allowedPages.includes(page) ? page : 'dashboard'

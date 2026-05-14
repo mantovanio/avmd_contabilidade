@@ -7,7 +7,6 @@ export interface SignUpData {
   nome: string
   email: string
   password: string
-  perfil: Profile['perfil']
 }
 
 interface AuthContextValue {
@@ -83,11 +82,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error?.message ?? null }
   }
 
-  async function signUp({ nome, email, password, perfil }: SignUpData) {
+  async function signUp({ nome, email, password }: SignUpData) {
     const { error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { nome, perfil } },
+      options: { data: { nome } },
     })
     return { error: error?.message ?? null }
   }

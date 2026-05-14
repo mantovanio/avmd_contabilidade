@@ -14,7 +14,15 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Decodificar chave SSH
-        run: echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > /tmp/deploy_key && chmod 600 /tmp/deploy_key
+        run: |
+          echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > /tmp/deploy_key
+          chmod 600 /tmp/deploy_key
+          echo "=== Fingerprint da chave decodificada ==="
+          ssh-keygen -l -f /tmp/deploy_key
+          echo "=== Primeiros bytes do arquivo ==="
+          head -1 /tmp/deploy_key
+          echo "=== Tamanho ==="
+          wc -l /tmp/deploy_key
 
       - name: Deploy na VPS
         uses: appleboy/ssh-action@v1.0.3

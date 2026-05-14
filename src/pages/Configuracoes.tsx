@@ -147,7 +147,9 @@ function AbaUsuarios() {
     setLoading(false)
   }, [])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    if (isAdmin) void load()
+  }, [isAdmin, load])
 
   async function saveEdit(userId: string) {
     setSaving(true)
@@ -220,6 +222,14 @@ function AbaUsuarios() {
     setCriandoUser(false)
     setCriadoOk(true)
     void load()
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-xl p-4 text-sm">
+        O gerenciamento de usuários é exclusivo para administradores.
+      </div>
+    )
   }
 
   if (loading) {
@@ -328,17 +338,13 @@ function AbaUsuarios() {
           <div>
             <h2 className="font-semibold text-gray-800 dark:text-gray-200">Usuários do Sistema</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-              {isAdmin
-                ? 'Gerencie perfis, senhas e status de cada usuário.'
-                : 'Para gerenciar usuários, contate o administrador.'}
+              Novos cadastros entram como Usuário e aguardam liberação para o primeiro acesso.
             </p>
           </div>
-          {isAdmin && (
-            <button type="button" onClick={abrirNovoUsuario}
-              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
-              <UserPlus size={14} /> Novo usuário
-            </button>
-          )}
+          <button type="button" onClick={abrirNovoUsuario}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium rounded-lg transition-colors">
+            <UserPlus size={14} /> Novo usuário
+          </button>
         </div>
 
         <div className="space-y-3">
@@ -388,8 +394,8 @@ function AbaUsuarios() {
                       <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
                         u.status === 'ativo'
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                          : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400')}>
-                        {u.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                          : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400')}>
+                        {u.status === 'ativo' ? 'Ativo' : 'Aguardando liberação'}
                       </span>
 
                       {isAdmin && (
@@ -408,8 +414,8 @@ function AbaUsuarios() {
                                 u.status === 'ativo'
                                   ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20'
                                   : 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20')}
-                              title={u.status === 'ativo' ? 'Desativar' : 'Reativar'}>
-                              {u.status === 'ativo' ? 'Desativar' : 'Reativar'}
+                              title={u.status === 'ativo' ? 'Desativar' : 'Liberar acesso'}>
+                              {u.status === 'ativo' ? 'Desativar' : 'Liberar'}
                             </button>
                           )}
                         </div>

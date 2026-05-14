@@ -1,8 +1,6 @@
 import { useState } from 'react'
 import { Shield, Eye, EyeOff, ArrowLeft, CheckCircle, Loader2, Mail } from 'lucide-react'
 import { useAuth } from '@/contexts/AuthContext'
-import { cn } from '@/lib/utils'
-import type { Profile } from '@/types'
 
 type View = 'login' | 'register' | 'forgot'
 
@@ -15,48 +13,6 @@ function translateError(msg: string): string {
   if (msg.includes('rate limit'))                   return 'Muitas tentativas. Aguarde alguns minutos e tente novamente.'
   return msg
 }
-
-const PERFIS: {
-  id: Profile['perfil']
-  label: string
-  desc: string
-  icon: string
-  selected: string
-  idle: string
-}[] = [
-  {
-    id: 'admin',
-    label: 'Administrador',
-    desc: 'Acesso completo: financeiro, usuários e configurações',
-    icon: '👑',
-    selected: 'border-purple-500 bg-purple-50 dark:bg-purple-900/30',
-    idle: 'border-gray-200 dark:border-gray-700',
-  },
-  {
-    id: 'agente_registro',
-    label: 'Agente de Registro',
-    desc: 'CRM, agenda, renovações e chat ao vivo',
-    icon: '🎫',
-    selected: 'border-green-500 bg-green-50 dark:bg-green-900/30',
-    idle: 'border-gray-200 dark:border-gray-700',
-  },
-  {
-    id: 'vendedor',
-    label: 'Vendedor / Parceiro',
-    desc: 'Comercial, parceiros e relatórios de vendas',
-    icon: '💼',
-    selected: 'border-blue-500 bg-blue-50 dark:bg-blue-900/30',
-    idle: 'border-gray-200 dark:border-gray-700',
-  },
-  {
-    id: 'usuario',
-    label: 'Usuário',
-    desc: 'Somente leitura: dashboard e relatórios',
-    icon: '👤',
-    selected: 'border-gray-500 bg-gray-50 dark:bg-gray-800',
-    idle: 'border-gray-200 dark:border-gray-700',
-  },
-]
 
 function InputField({
   label,
@@ -175,7 +131,6 @@ export default function Login() {
   const [regEmail,   setRegEmail]   = useState('')
   const [regPass,    setRegPass]    = useState('')
   const [regConfirm, setRegConfirm] = useState('')
-  const [regPerfil,  setRegPerfil]  = useState<Profile['perfil']>('agente_registro')
   const [regLoading, setRegLoading] = useState(false)
   const [regError,   setRegError]   = useState<string | null>(null)
   const [regOk,      setRegOk]      = useState(false)
@@ -201,7 +156,7 @@ export default function Login() {
     if (regPass !== regConfirm) { setRegError('As senhas não coincidem.'); return }
     if (regPass.length < 6)     { setRegError('A senha deve ter pelo menos 6 caracteres.'); return }
     setRegLoading(true)
-    const { error } = await signUp({ nome: regNome, email: regEmail, password: regPass, perfil: regPerfil })
+    const { error } = await signUp({ nome: regNome, email: regEmail, password: regPass })
     if (error) setRegError(translateError(error))
     else setRegOk(true)
     setRegLoading(false)
@@ -302,7 +257,7 @@ export default function Login() {
                     <p className="font-semibold text-gray-900 dark:text-white text-lg">Conta criada!</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
                       Enviamos um email de confirmação para <strong>{regEmail}</strong>.<br />
-                      Verifique sua caixa de entrada e clique no link para ativar sua conta.
+                      Depois da confirmação, o administrador precisa liberar seu primeiro acesso.
                     </p>
                   </div>
                   <button type="button" onClick={goLogin}
@@ -320,33 +275,9 @@ export default function Login() {
                     <PasswordInput label="Confirmar senha" value={regConfirm} onChange={setRegConfirm} />
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
-                      Tipo de acesso
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PERFIS.map(p => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => setRegPerfil(p.id)}
-                          className={cn(
-                            'border-2 rounded-xl p-3 text-left transition-all',
-                            regPerfil === p.id ? p.selected : p.idle + ' hover:border-gray-300 dark:hover:border-gray-600',
-                          )}
-                        >
-                          <div className="text-lg mb-1 leading-none">{p.icon}</div>
-                          <div className="text-xs font-semibold text-gray-800 dark:text-gray-200 leading-tight">{p.label}</div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-tight">{p.desc}</div>
-                        </button>
-                      ))}
-                    </div>
-                    {regPerfil === 'admin' && (
-                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-2">
-                        ⚠ O acesso de Administrador precisa ser aprovado pelo administrador atual do sistema.
-                      </p>
-                    )}
-                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/70 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2">
+                    O tipo de acesso será definido pelo administrador em Configurações.
+                  </p>
 
                   {regError && <ErrorBox msg={regError} />}
 
