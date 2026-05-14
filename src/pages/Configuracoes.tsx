@@ -232,11 +232,23 @@ function AbaGeral() {
         <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
           <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Identidade visual do login</h3>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            Aqui você pode trocar a logomarca, textos e cores da tela inicial sem mexer no código.
+            Aqui você pode trocar separadamente a imagem do login e a imagem da parte interna do sistema.
           </p>
         </div>
         <ConfigInput
-          label="URL da logomarca"
+          label="URL da logomarca do login"
+          value={form.logo_login_url}
+          onChange={v => updateField('logo_login_url', v)}
+          placeholder="https://seusite.com/logo-login.png"
+        />
+        <ConfigInput
+          label="URL da logomarca interna"
+          value={form.logo_interna_url}
+          onChange={v => updateField('logo_interna_url', v)}
+          placeholder="https://seusite.com/logo-interna.png"
+        />
+        <ConfigInput
+          label="URL da logomarca antiga"
           value={form.logo_url}
           onChange={v => updateField('logo_url', v)}
           placeholder="https://seusite.com/logo.png"
@@ -248,28 +260,54 @@ function AbaGeral() {
           <ConfigInput label="Fundo inicial" value={form.fundo_inicio} onChange={v => updateField('fundo_inicio', v)} placeholder="#172554" />
           <ConfigInput label="Fundo final" value={form.fundo_fim} onChange={v => updateField('fundo_fim', v)} placeholder="#1e3a8a" />
         </div>
-        <div
-          className="rounded-2xl p-5 text-white border border-white/10 shadow-inner"
-          style={{ background: `linear-gradient(135deg, ${form.fundo_inicio}, ${form.fundo_fim})` }}
-        >
-          <div className="flex items-center gap-4">
-            {form.logo_url.trim() ? (
-              <img
-                src={form.logo_url}
-                alt={form.login_titulo}
-                className="w-14 h-14 rounded-2xl object-contain bg-white/10 p-2"
-              />
-            ) : (
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
-                style={{ backgroundColor: form.cor_primaria }}
-              >
-                <span className="text-lg font-bold">ID</span>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div
+            className="rounded-2xl p-5 text-white border border-white/10 shadow-inner"
+            style={{ background: `linear-gradient(135deg, ${form.fundo_inicio}, ${form.fundo_fim})` }}
+          >
+            <p className="text-xs uppercase tracking-wide text-white/70 mb-3">Prévia do login</p>
+            <div className="flex items-center gap-4">
+              {form.logo_login_url.trim() ? (
+                <img
+                  src={form.logo_login_url}
+                  alt={form.login_titulo}
+                  className="w-14 h-14 rounded-2xl object-contain bg-white/10 p-2"
+                />
+              ) : (
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg"
+                  style={{ backgroundColor: form.cor_primaria }}
+                >
+                  <span className="text-lg font-bold">ID</span>
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-semibold">{form.login_titulo}</p>
+                <p className="text-sm text-white/80">{form.login_subtitulo}</p>
               </div>
-            )}
-            <div>
-              <p className="text-lg font-semibold">{form.login_titulo}</p>
-              <p className="text-sm text-white/80">{form.login_subtitulo}</p>
+            </div>
+          </div>
+          <div className="rounded-2xl p-5 border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+            <p className="text-xs uppercase tracking-wide text-gray-500 dark:text-gray-400 mb-3">Prévia interna</p>
+            <div className="flex items-center gap-4">
+              {form.logo_interna_url.trim() ? (
+                <img
+                  src={form.logo_interna_url}
+                  alt={form.nome_agencia}
+                  className="w-14 h-14 rounded-2xl object-contain bg-gray-50 dark:bg-gray-900 p-2 border border-gray-200 dark:border-gray-800"
+                />
+              ) : (
+                <div
+                  className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-lg"
+                  style={{ backgroundColor: form.cor_primaria }}
+                >
+                  <span className="text-lg font-bold">ID</span>
+                </div>
+              )}
+              <div>
+                <p className="text-lg font-semibold text-gray-900 dark:text-white">{form.nome_agencia}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Barra lateral e topo do sistema</p>
+              </div>
             </div>
           </div>
         </div>

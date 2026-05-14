@@ -6,6 +6,8 @@ export type AgencyConfig = {
   telefone: string
   cidade: string
   logo_url: string
+  logo_login_url: string
+  logo_interna_url: string
   login_titulo: string
   login_subtitulo: string
   cor_primaria: string
@@ -19,6 +21,8 @@ export const DEFAULT_AGENCY_CONFIG: AgencyConfig = {
   telefone: '+55 11 9508-9218',
   cidade: 'São Paulo - SP',
   logo_url: '',
+  logo_login_url: '',
+  logo_interna_url: '',
   login_titulo: 'AR CERTI ID',
   login_subtitulo: 'Agência de Certificação Digital',
   cor_primaria: '#2563eb',
@@ -31,6 +35,18 @@ export function buildAuthBackground(startColor: string, endColor: string) {
     radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 32%),
     linear-gradient(145deg, ${startColor} 0%, #111827 48%, ${endColor} 100%)
   `
+}
+
+function normalizeAgencyConfig(value: Partial<AgencyConfig>) {
+  const legacyLogo = value.logo_url ?? ''
+
+  return {
+    ...DEFAULT_AGENCY_CONFIG,
+    ...value,
+    logo_url: legacyLogo,
+    logo_login_url: value.logo_login_url ?? legacyLogo,
+    logo_interna_url: value.logo_interna_url ?? legacyLogo,
+  }
 }
 
 export async function fetchAgencyConfig() {
@@ -48,7 +64,7 @@ export async function fetchAgencyConfig() {
   }
 
   return {
-    data: { ...DEFAULT_AGENCY_CONFIG, ...(value as Partial<AgencyConfig>) },
+    data: normalizeAgencyConfig(value as Partial<AgencyConfig>),
     error: null,
   }
 }

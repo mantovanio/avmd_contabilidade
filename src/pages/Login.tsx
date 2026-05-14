@@ -213,9 +213,9 @@ export default function Login() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          {agencyConfig.logo_url.trim() ? (
+          {agencyConfig.logo_login_url.trim() ? (
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-white/10 backdrop-blur-sm mb-4 shadow-lg p-3">
-              <img src={agencyConfig.logo_url} alt={agencyConfig.login_titulo} className="w-full h-full object-contain" />
+              <img src={agencyConfig.logo_login_url} alt={agencyConfig.login_titulo} className="w-full h-full object-contain" />
             </div>
           ) : (
             <div

@@ -48,9 +48,9 @@ export default function Sidebar({ activePage, onNavigate, allowedPages, onLogout
 
   return (
     <aside className="w-16 flex flex-col items-center py-4 gap-1 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shrink-0">
-      {agencyConfig?.logo_url?.trim() ? (
+      {agencyConfig?.logo_interna_url?.trim() ? (
         <div className="w-10 h-10 rounded-xl bg-white border border-gray-200 dark:border-gray-800 flex items-center justify-center p-1.5 mb-3 overflow-hidden">
-          <img src={agencyConfig.logo_url} alt={agencyConfig.nome_agencia} className="w-full h-full object-contain" />
+          <img src={agencyConfig.logo_interna_url} alt={agencyConfig.nome_agencia} className="w-full h-full object-contain" />
         </div>
       ) : (
         <div
