@@ -15,19 +15,13 @@ jobs:
 
       - name: Decodificar chave SSH
         run: |
-          echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > /tmp/deploy_key
-          chmod 600 /tmp/deploy_key
-          echo "=== Fingerprint da chave decodificada ==="
-          ssh-keygen -l -f /tmp/deploy_key
-          echo "=== Primeiros bytes do arquivo ==="
-          head -1 /tmp/deploy_key
-          echo "=== Tamanho ==="
-          wc -l /tmp/deploy_key
+          echo "${{ secrets.VPS_SSH_KEY }}" | base64 -d > "$RUNNER_TEMP/deploy_key"
+          chmod 600 "$RUNNER_TEMP/deploy_key"
 
       - name: Deploy na VPS
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 147.79.111.76
           username: root
-          key_path: /tmp/deploy_key
+          key_path: /github/runner_temp/deploy_key
           script: bash /opt/certiid/deploy.sh
