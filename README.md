@@ -5,6 +5,7 @@ CRM para certificacao digital com vendas, atendimento, automacoes, integracoes e
 ## Links rapidos
 
 - [Manual de atualizacao passo a passo](./MANUAL-ATUALIZACAO.txt)
+- [Historico de versoes](./CHANGELOG.md)
 - [Guia de deploy e infraestrutura](./DEPLOY.txt)
 - [Documentacao tecnica para desenvolvedores](./DEVELOPER.md)
 - [Guia para iniciar novo chat de desenvolvimento](./NOVO-CHAT.txt)
@@ -37,10 +38,25 @@ CRM para certificacao digital com vendas, atendimento, automacoes, integracoes e
 ## Rotina recomendada para atualizar
 
 1. Leia o [Manual de atualizacao](./MANUAL-ATUALIZACAO.txt).
-2. Rode `npm run build` antes de publicar.
-3. Faca commit e push na branch `main`.
-4. Acompanhe o deploy em [GitHub Actions](https://github.com/mantovanio/certiid/actions).
-5. Se houver arquivo SQL novo ou alterado, execute a migration no Supabase SQL Editor.
+2. Atualize a versao em `package.json`, `package-lock.json`, `src/lib/version.ts` e [CHANGELOG.md](./CHANGELOG.md).
+3. Rode `npm run build` antes de publicar.
+4. Faca commit e push na branch `main`.
+5. Acompanhe o deploy em [GitHub Actions](https://github.com/mantovanio/certiid/actions).
+6. Se houver arquivo SQL novo ou alterado, execute a migration no Supabase SQL Editor.
+
+## Versionamento
+
+Versao atual:
+
+```txt
+1.1.0
+```
+
+Padrao usado:
+
+- `MAJOR`: mudanca grande ou incompatibilidade.
+- `MINOR`: nova funcionalidade sem quebrar o sistema.
+- `PATCH`: correcao pequena ou ajuste.
 
 ## Stack
 
@@ -71,4 +87,3 @@ npm run dev
 ```bash
 npm run build
 ```
-

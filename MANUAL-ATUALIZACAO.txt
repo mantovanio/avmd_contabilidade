@@ -38,16 +38,29 @@ Use este fluxo quando voce alterou arquivos do projeto e quer publicar no site.
 
    Se der erro aqui, pare e corrija antes de publicar.
 
-4. Adicione os arquivos alterados:
+4. Atualize a versao da mudanca:
+
+   - package.json
+   - package-lock.json
+   - src/lib/version.ts
+   - CHANGELOG.md
+
+   Regra:
+
+   PATCH: correcao pequena. Exemplo: 1.1.0 -> 1.1.1
+   MINOR: nova funcionalidade. Exemplo: 1.1.0 -> 1.2.0
+   MAJOR: mudanca grande/incompativel. Exemplo: 1.1.0 -> 2.0.0
+
+5. Adicione os arquivos alterados:
 
    git add .
 
    Atencao:
    Se aparecer a pasta .claude/ e voce nao quiser publicar ela, use:
 
-   git add src sql .github Dockerfile docker-compose.yml nginx.conf package.json package-lock.json DEPLOY.txt DEVELOPER.md MANUAL-ATUALIZACAO.txt
+   git add src sql .github Dockerfile docker-compose.yml nginx.conf package.json package-lock.json DEPLOY.txt DEVELOPER.md MANUAL-ATUALIZACAO.txt README.md CHANGELOG.md
 
-5. Crie o commit:
+6. Crie o commit:
 
    git commit -m "descreva aqui a alteracao"
 
@@ -57,11 +70,11 @@ Use este fluxo quando voce alterou arquivos do projeto e quer publicar no site.
    git commit -m "feat: adiciona nova tela de relatorios"
    git commit -m "docs: atualiza manual de deploy"
 
-6. Envie para o GitHub:
+7. Envie para o GitHub:
 
    git push origin main
 
-7. Acompanhe o deploy automatico:
+8. Acompanhe o deploy automatico:
 
    Abra:
    https://github.com/mantovanio/certiid/actions
@@ -73,11 +86,11 @@ Use este fluxo quando voce alterou arquivos do projeto e quer publicar no site.
    - Amarelo: ainda esta rodando.
    - Vermelho: deu erro, abra o log e veja a mensagem.
 
-8. Depois que ficar verde, abra o site:
+9. Depois que ficar verde, abra o site:
 
    https://certiid.mantovan.com.br
 
-9. Se a tela ainda parecer antiga:
+10. Se a tela ainda parecer antiga:
 
    - Pressione Ctrl + F5 no navegador.
    - Abra em aba anonima.
@@ -266,6 +279,8 @@ Antes de publicar:
 
 [ ] Rodei git status.
 [ ] Rodei npm run build.
+[ ] Atualizei a versao.
+[ ] Atualizei o CHANGELOG.md.
 [ ] Fiz git add dos arquivos certos.
 [ ] Fiz git commit.
 [ ] Fiz git push origin main.

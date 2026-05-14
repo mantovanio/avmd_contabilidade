@@ -4,7 +4,18 @@ import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { useAuth } from '@/contexts/AuthContext'
-import type { AutomationRule, CommunicationOutbox, ExternalIntegration, IntegrationProvider, IntegrationStatus, Profile, PerfilAcesso } from '@/types'
+import type {
+  AutomationRule,
+  CommunicationOutbox,
+  ExternalIntegration,
+  IntegrationProvider,
+  IntegrationStatus,
+  Parceiro,
+  PerfilAcesso,
+  PermissaoPagina,
+  Profile,
+  TipoVinculoUsuario,
+} from '@/types'
 
 type Tab = 'geral' | 'integracoes' | 'automacoes' | 'usuarios'
 
@@ -27,6 +38,61 @@ const PERFIL_COLOR: Record<PerfilAcesso, string> = {
   agente_registro: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
   vendedor:        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
   usuario:         'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+}
+
+const TIPO_VINCULO_LABEL: Record<TipoVinculoUsuario, string> = {
+  agente_registro: 'Agente de Registro',
+  parceiro:        'Parceiro',
+  vendedor:        'Vendedor',
+  contador:        'Contador',
+  usuario_comum:   'Usuário comum',
+}
+
+const PAGE_PERMISSIONS: { id: PermissaoPagina; label: string; description: string }[] = [
+  { id: 'dashboard',     label: 'Dashboard',     description: 'Ver indicadores principais' },
+  { id: 'comercial',     label: 'Comercial',     description: 'Clientes, vendas, agenda e certificados' },
+  { id: 'chat',          label: 'Chat ao Vivo',  description: 'Atendimento e Kanban de conversas' },
+  { id: 'renovacoes',    label: 'Renovações',    description: 'Base e campanhas de renovação' },
+  { id: 'financeiro',    label: 'Financeiro',    description: 'Lançamentos, contas e pagamentos' },
+  { id: 'relatorios',    label: 'Relatórios',    description: 'Análises e relatórios' },
+  { id: 'parceiros',     label: 'Parceiros',     description: 'Cadastro e acompanhamento de parceiros' },
+  { id: 'configuracoes', label: 'Configurações', description: 'Configurações, integrações e usuários' },
+]
+
+const DEFAULT_PERMISSIONS: Record<PerfilAcesso, PermissaoPagina[]> = {
+  admin:           PAGE_PERMISSIONS.map(p => p.id),
+  agente_registro: ['dashboard', 'comercial', 'chat', 'renovacoes'],
+  vendedor:        ['dashboard', 'comercial', 'parceiros', 'relatorios'],
+  usuario:         ['dashboard', 'relatorios'],
+}
+
+type AgencyConfig = {
+  nome_agencia: string
+  responsavel: string
+  telefone: string
+  cidade: string
+}
+
+type UserEditForm = {
+  nome: string
+  email: string
+  perfil: PerfilAcesso
+  status: 'ativo' | 'inativo'
+  tipo_vinculo: TipoVinculoUsuario
+  parceiro_id: string
+  vinculo_nome: string
+  documento: string
+  telefone: string
+  cidade: string
+  observacoes: string
+  permissoes: PermissaoPagina[]
+}
+
+const DEFAULT_AGENCY_CONFIG: AgencyConfig = {
+  nome_agencia: 'AR CERTI ID',
+  responsavel: 'Alexandre Aparecido Mantovan',
+  telefone: '+55 11 9508-9218',
+  cidade: 'São Paulo - SP',
 }
 
 type ModalSenha = { userId: string; nome: string } | null
@@ -112,15 +178,109 @@ function CampoSenha({ label, value, onChange, autoFocus }: { label: string; valu
   )
 }
 
+function AbaGeral() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.perfil === 'admin'
+  const [form, setForm] = useState<AgencyConfig>(DEFAULT_AGENCY_CONFIG)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [erro, setErro] = useState<string | null>(null)
+  const [ok, setOk] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErro(null)
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'agency')
+      .maybeSingle()
+
+    if (error) {
+      setErro(`Erro ao carregar configurações: ${error.message}. Execute sql/settings_users_permissions_migration.sql no Supabase.`)
+      setLoading(false)
+      return
+    }
+
+    if (data?.value && typeof data.value === 'object') {
+      setForm({ ...DEFAULT_AGENCY_CONFIG, ...(data.value as Partial<AgencyConfig>) })
+    }
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  function updateField<K extends keyof AgencyConfig>(key: K, value: AgencyConfig[K]) {
+    setOk(false)
+    setForm(prev => ({ ...prev, [key]: value }))
+  }
+
+  async function salvar() {
+    if (!isAdmin) return
+    setSaving(true)
+    setErro(null)
+    setOk(false)
+    const { error } = await supabase
+      .from('app_settings')
+      .upsert({ key: 'agency', value: form, updated_by: profile?.id ?? null }, { onConflict: 'key' })
+    setSaving(false)
+    if (error) {
+      setErro(`Erro ao salvar: ${error.message}`)
+      return
+    }
+    setOk(true)
+  }
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
+  }
+
+  return (
+    <div className="max-w-2xl space-y-5">
+      <div>
+        <h2 className="font-semibold text-gray-800 dark:text-gray-200">Informações da Agência</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+          Esses dados são salvos no Supabase e podem ser usados como referência nas telas do sistema.
+        </p>
+      </div>
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
+        <ConfigInput label="Nome da Agência" value={form.nome_agencia} onChange={v => updateField('nome_agencia', v)} />
+        <ConfigInput label="Responsável" value={form.responsavel} onChange={v => updateField('responsavel', v)} />
+        <ConfigInput label="Telefone" value={form.telefone} onChange={v => updateField('telefone', v)} />
+        <ConfigInput label="Cidade" value={form.cidade} onChange={v => updateField('cidade', v)} />
+
+        {erro && (
+          <p className="text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+            {erro}
+          </p>
+        )}
+        {ok && (
+          <p className="text-xs text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg px-3 py-2">
+            Configurações salvas.
+          </p>
+        )}
+
+        <button type="button" onClick={salvar} disabled={!isAdmin || saving}
+          className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-60 transition-colors inline-flex items-center gap-2">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          {saving ? 'Salvando...' : 'Salvar Alterações'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function AbaUsuarios() {
   const { profile: myProfile } = useAuth()
   const isAdmin = myProfile?.perfil === 'admin'
 
   const [users, setUsers]           = useState<Profile[]>([])
+  const [parceiros, setParceiros]   = useState<Parceiro[]>([])
   const [loading, setLoading]       = useState(true)
   const [editingId, setEditingId]   = useState<string | null>(null)
-  const [editPerfil, setEditPerfil] = useState<PerfilAcesso>('usuario')
+  const [editForm, setEditForm]     = useState<UserEditForm | null>(null)
   const [saving, setSaving]         = useState(false)
+  const [editErro, setEditErro]     = useState<string | null>(null)
 
   // Modal alterar senha
   const [modalSenha, setModalSenha]   = useState<ModalSenha>(null)
@@ -142,8 +302,12 @@ function AbaUsuarios() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: true })
+    const [{ data }, { data: parceirosData }] = await Promise.all([
+      supabase.from('profiles').select('*').order('created_at', { ascending: true }),
+      supabase.from('parceiros').select('*').order('nome', { ascending: true }),
+    ])
     setUsers(data ?? [])
+    setParceiros((parceirosData ?? []) as Parceiro[])
     setLoading(false)
   }, [])
 
@@ -152,10 +316,35 @@ function AbaUsuarios() {
   }, [isAdmin, load])
 
   async function saveEdit(userId: string) {
+    if (!editForm) return
+    if (editForm.permissoes.length === 0) {
+      setEditErro('Selecione pelo menos uma permissão.')
+      return
+    }
     setSaving(true)
-    await supabase.from('profiles').update({ perfil: editPerfil }).eq('id', userId)
+    setEditErro(null)
+    const payload = {
+      nome: editForm.nome.trim(),
+      email: editForm.email.trim(),
+      perfil: editForm.perfil,
+      status: editForm.status,
+      tipo_vinculo: editForm.tipo_vinculo,
+      parceiro_id: editForm.tipo_vinculo === 'parceiro' && editForm.parceiro_id ? editForm.parceiro_id : null,
+      vinculo_nome: editForm.vinculo_nome.trim() || null,
+      documento: editForm.documento.trim() || null,
+      telefone: editForm.telefone.trim() || null,
+      cidade: editForm.cidade.trim() || null,
+      observacoes: editForm.observacoes.trim() || null,
+      permissoes: editForm.perfil === 'admin' ? DEFAULT_PERMISSIONS.admin : editForm.permissoes,
+    }
+    const { error } = await supabase.from('profiles').update(payload).eq('id', userId)
     setSaving(false)
+    if (error) {
+      setEditErro(error.message)
+      return
+    }
     setEditingId(null)
+    setEditForm(null)
     void load()
   }
 
@@ -167,7 +356,49 @@ function AbaUsuarios() {
 
   function startEdit(u: Profile) {
     setEditingId(u.id)
-    setEditPerfil(u.perfil)
+    setEditErro(null)
+    setEditForm({
+      nome: u.nome,
+      email: u.email,
+      perfil: u.perfil,
+      status: u.status,
+      tipo_vinculo: u.tipo_vinculo ?? 'usuario_comum',
+      parceiro_id: u.parceiro_id ?? '',
+      vinculo_nome: u.vinculo_nome ?? '',
+      documento: u.documento ?? '',
+      telefone: u.telefone ?? '',
+      cidade: u.cidade ?? '',
+      observacoes: u.observacoes ?? '',
+      permissoes: u.permissoes && u.permissoes.length > 0 ? u.permissoes : DEFAULT_PERMISSIONS[u.perfil],
+    })
+  }
+
+  function updateEdit<K extends keyof UserEditForm>(key: K, value: UserEditForm[K]) {
+    setEditErro(null)
+    setEditForm(prev => {
+      if (!prev) return prev
+      const next = { ...prev, [key]: value }
+      if (key === 'perfil') {
+        const perfil = value as PerfilAcesso
+        next.permissoes = DEFAULT_PERMISSIONS[perfil]
+      }
+      if (key === 'tipo_vinculo' && value !== 'parceiro') {
+        next.parceiro_id = ''
+      }
+      return next
+    })
+  }
+
+  function togglePermissao(permission: PermissaoPagina) {
+    setEditErro(null)
+    setEditForm(prev => {
+      if (!prev || prev.perfil === 'admin') return prev
+      const has = prev.permissoes.includes(permission)
+      const permissoes = has
+        ? prev.permissoes.filter(p => p !== permission)
+        : [...prev.permissoes, permission]
+      return { ...prev, permissoes }
+    })
   }
 
   function abrirModalSenha(u: Profile) {
@@ -216,7 +447,13 @@ function AbaUsuarios() {
     // Garante perfil criado (trigger pode demorar)
     if (data.user) {
       await supabaseAdmin.from('profiles').upsert({
-        id: data.user.id, nome: novoNome, email: novoEmail, perfil: novoPerfil, status: 'ativo',
+        id: data.user.id,
+        nome: novoNome,
+        email: novoEmail,
+        perfil: novoPerfil,
+        status: 'ativo',
+        tipo_vinculo: novoPerfil === 'agente_registro' ? 'agente_registro' : novoPerfil === 'vendedor' ? 'vendedor' : 'usuario_comum',
+        permissoes: DEFAULT_PERMISSIONS[novoPerfil],
       })
     }
     setCriandoUser(false)
@@ -368,22 +605,14 @@ function AbaUsuarios() {
 
                 <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                   {editingId === u.id ? (
-                    <div className="flex items-center gap-2">
-                      <select value={editPerfil} onChange={e => setEditPerfil(e.target.value as PerfilAcesso)}
-                        title="Perfil de acesso" aria-label="Perfil de acesso"
-                        className="text-xs border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="admin">Administrador</option>
-                        <option value="agente_registro">Agente de Registro</option>
-                        <option value="vendedor">Vendedor / Parceiro</option>
-                        <option value="usuario">Usuário</option>
-                      </select>
-                      <button type="button" onClick={() => saveEdit(u.id)} disabled={saving} title="Salvar"
-                        className="w-7 h-7 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center hover:bg-green-200 transition-colors">
-                        {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                    <div className="flex items-center gap-1">
+                      <button type="button" onClick={() => saveEdit(u.id)} disabled={saving || !editForm} title="Salvar"
+                        className="w-8 h-8 rounded-lg bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center hover:bg-green-200 transition-colors disabled:opacity-60">
+                        {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
                       </button>
-                      <button type="button" onClick={() => setEditingId(null)} title="Cancelar"
-                        className="w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
-                        <X size={13} />
+                      <button type="button" onClick={() => { setEditingId(null); setEditForm(null); setEditErro(null) }} title="Cancelar"
+                        className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-500 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                        <X size={14} />
                       </button>
                     </div>
                   ) : (
@@ -427,6 +656,111 @@ function AbaUsuarios() {
                   )}
                 </div>
               </div>
+
+              {editingId === u.id && editForm && (
+                <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    <ConfigInput label="Nome" value={editForm.nome} onChange={v => updateEdit('nome', v)} />
+                    <ConfigInput label="Email" type="email" value={editForm.email} onChange={v => updateEdit('email', v)} />
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Perfil de acesso</span>
+                      <select value={editForm.perfil} onChange={e => updateEdit('perfil', e.target.value as PerfilAcesso)}
+                        className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="admin">Administrador</option>
+                        <option value="agente_registro">Agente de Registro</option>
+                        <option value="vendedor">Vendedor / Parceiro</option>
+                        <option value="usuario">Usuário</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Status</span>
+                      <select value={editForm.status} onChange={e => updateEdit('status', e.target.value as 'ativo' | 'inativo')}
+                        disabled={u.id === myProfile?.id}
+                        className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60">
+                        <option value="ativo">Ativo</option>
+                        <option value="inativo">Aguardando liberação</option>
+                      </select>
+                    </label>
+                    <label className="flex flex-col gap-1">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">Vínculo do usuário</span>
+                      <select value={editForm.tipo_vinculo} onChange={e => updateEdit('tipo_vinculo', e.target.value as TipoVinculoUsuario)}
+                        className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        {Object.entries(TIPO_VINCULO_LABEL).map(([value, label]) => (
+                          <option key={value} value={value}>{label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    {editForm.tipo_vinculo === 'parceiro' ? (
+                      <label className="flex flex-col gap-1">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">Parceiro vinculado</span>
+                        <select value={editForm.parceiro_id} onChange={e => {
+                          const parceiro = parceiros.find(p => p.id === e.target.value)
+                          updateEdit('parceiro_id', e.target.value)
+                          if (parceiro) updateEdit('vinculo_nome', parceiro.nome)
+                        }}
+                          className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                          <option value="">Selecione...</option>
+                          {parceiros.map(p => <option key={p.id} value={p.id}>{p.nome}</option>)}
+                        </select>
+                      </label>
+                    ) : (
+                      <ConfigInput label="Nome do vínculo" value={editForm.vinculo_nome} onChange={v => updateEdit('vinculo_nome', v)} placeholder="Nome do AR, vendedor ou contador" />
+                    )}
+                    <ConfigInput label="Documento" value={editForm.documento} onChange={v => updateEdit('documento', v)} placeholder="CPF, CNPJ ou código interno" />
+                    <ConfigInput label="Telefone" value={editForm.telefone} onChange={v => updateEdit('telefone', v)} />
+                    <ConfigInput label="Cidade" value={editForm.cidade} onChange={v => updateEdit('cidade', v)} />
+                  </div>
+
+                  <label className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500 dark:text-gray-400">Observações</span>
+                    <textarea value={editForm.observacoes} onChange={e => updateEdit('observacoes', e.target.value)}
+                      rows={3}
+                      className="border border-gray-300 dark:border-gray-700 rounded-xl px-3 py-2.5 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      placeholder="Anotações administrativas sobre este usuário" />
+                  </label>
+
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <div>
+                        <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Permissões na plataforma</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Marque o que este usuário pode acessar no menu lateral.</p>
+                      </div>
+                      {editForm.perfil !== 'admin' && (
+                        <button type="button" onClick={() => updateEdit('permissoes', DEFAULT_PERMISSIONS[editForm.perfil])}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline">
+                          Usar padrão do perfil
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-2">
+                      {PAGE_PERMISSIONS.map(permission => (
+                        <label key={permission.id}
+                          className={cn('border rounded-xl p-3 flex items-start gap-2 text-sm transition-colors',
+                            editForm.permissoes.includes(permission.id)
+                              ? 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-900/20'
+                              : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900',
+                            editForm.perfil === 'admin' && 'opacity-70')}>
+                          <input type="checkbox"
+                            checked={editForm.permissoes.includes(permission.id)}
+                            disabled={editForm.perfil === 'admin'}
+                            onChange={() => togglePermissao(permission.id)}
+                            className="mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                          <span>
+                            <span className="block text-xs font-medium text-gray-800 dark:text-gray-200">{permission.label}</span>
+                            <span className="block text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">{permission.description}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {editErro && (
+                    <p className="text-xs text-red-600 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                      {editErro}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           ))}
 
@@ -1098,29 +1432,7 @@ export default function Configuracoes() {
 
         {/* GERAL */}
         {tab === 'geral' && (
-          <div className="max-w-lg space-y-5">
-            <h2 className="font-semibold text-gray-800 dark:text-gray-200">Informações da Agência</h2>
-            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5 space-y-4">
-              {[
-                { label: 'Nome da Agência',  value: 'AR CERTI ID' },
-                { label: 'Responsável',      value: 'Alexandre Aparecido Mantovan' },
-                { label: 'Telefone',         value: '+55 11 9508-9218' },
-                { label: 'Cidade',           value: 'São Paulo - SP' },
-              ].map(f => (
-                <label key={f.label} className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-500 dark:text-gray-400">{f.label}</span>
-                  <input
-                    type="text"
-                    defaultValue={f.value}
-                    className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </label>
-              ))}
-              <button type="button" className="mt-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                Salvar Alterações
-              </button>
-            </div>
-          </div>
+          <AbaGeral />
         )}
 
         {/* INTEGRAÇÕES */}

@@ -12,6 +12,15 @@ CREATE TABLE IF NOT EXISTS public.profiles (
              CHECK (perfil IN ('admin', 'usuario', 'vendedor', 'agente_registro')),
   status     TEXT NOT NULL DEFAULT 'inativo'
              CHECK (status IN ('ativo', 'inativo')),
+  tipo_vinculo TEXT DEFAULT 'usuario_comum'
+             CHECK (tipo_vinculo IN ('agente_registro', 'parceiro', 'vendedor', 'contador', 'usuario_comum')),
+  parceiro_id UUID NULL,
+  vinculo_nome TEXT NULL,
+  documento TEXT NULL,
+  telefone TEXT NULL,
+  cidade TEXT NULL,
+  observacoes TEXT NULL,
+  permissoes JSONB DEFAULT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
@@ -38,17 +47,57 @@ CREATE POLICY "profiles_update" ON public.profiles
 
 ALTER TABLE public.profiles ALTER COLUMN status SET DEFAULT 'inativo';
 
+-- Configuracoes gerais do sistema
+CREATE TABLE IF NOT EXISTS public.app_settings (
+  key        TEXT PRIMARY KEY,
+  value      JSONB NOT NULL DEFAULT '{}'::jsonb,
+  updated_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "app_settings_select" ON public.app_settings;
+CREATE POLICY "app_settings_select" ON public.app_settings
+  FOR SELECT USING (auth.role() = 'authenticated');
+
+DROP POLICY IF EXISTS "app_settings_insert" ON public.app_settings;
+CREATE POLICY "app_settings_insert" ON public.app_settings
+  FOR INSERT WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND perfil = 'admin' AND status = 'ativo'
+    )
+  );
+
+DROP POLICY IF EXISTS "app_settings_update" ON public.app_settings;
+CREATE POLICY "app_settings_update" ON public.app_settings
+  FOR UPDATE USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND perfil = 'admin' AND status = 'ativo'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles
+      WHERE id = auth.uid() AND perfil = 'admin' AND status = 'ativo'
+    )
+  );
+
 -- 3. Trigger: cria perfil automaticamente no cadastro
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
-  INSERT INTO public.profiles (id, nome, email, perfil, status)
+  INSERT INTO public.profiles (id, nome, email, perfil, status, tipo_vinculo, permissoes)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'nome', split_part(NEW.email, '@', 1)),
     NEW.email,
     'usuario',
-    'inativo'
+    'inativo',
+    'usuario_comum',
+    '["dashboard", "relatorios"]'::jsonb
   )
   ON CONFLICT (id) DO NOTHING;
   RETURN NEW;

@@ -315,6 +315,17 @@ export interface CommunicationOutbox {
 
 // ── auth / profiles ───────────────────────────────────────────
 export type PerfilAcesso = 'admin' | 'usuario' | 'vendedor' | 'agente_registro'
+export type TipoVinculoUsuario = 'agente_registro' | 'parceiro' | 'vendedor' | 'contador' | 'usuario_comum'
+
+export type PermissaoPagina =
+  | 'dashboard'
+  | 'comercial'
+  | 'chat'
+  | 'renovacoes'
+  | 'financeiro'
+  | 'relatorios'
+  | 'parceiros'
+  | 'configuracoes'
 
 export interface Profile {
   id: string
@@ -322,6 +333,14 @@ export interface Profile {
   email: string
   perfil: PerfilAcesso
   status: 'ativo' | 'inativo'
+  tipo_vinculo: TipoVinculoUsuario | null
+  parceiro_id: string | null
+  vinculo_nome: string | null
+  documento: string | null
+  telefone: string | null
+  cidade: string | null
+  observacoes: string | null
+  permissoes: PermissaoPagina[] | null
   created_at: string
 }
 

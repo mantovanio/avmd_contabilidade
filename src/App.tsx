@@ -11,7 +11,8 @@ import Financeiro from './pages/Financeiro'
 import Relatorios from './pages/Relatorios'
 import Parceiros from './pages/Parceiros'
 import Configuracoes from './pages/Configuracoes'
-import type { PerfilAcesso } from './types'
+import type { PerfilAcesso, PermissaoPagina } from './types'
+import { APP_VERSION } from './lib/version'
 
 const PAGE_LABELS: Record<Page, string> = {
   dashboard:     'Dashboard',
@@ -24,7 +25,7 @@ const PAGE_LABELS: Record<Page, string> = {
   configuracoes: 'Configurações',
 }
 
-const PAGE_ACCESS: Record<PerfilAcesso, Page[]> = {
+const PAGE_ACCESS: Record<PerfilAcesso, PermissaoPagina[]> = {
   admin:           ['dashboard', 'comercial', 'chat', 'renovacoes', 'financeiro', 'relatorios', 'parceiros', 'configuracoes'],
   agente_registro: ['dashboard', 'comercial', 'chat', 'renovacoes'],
   vendedor:        ['dashboard', 'comercial', 'parceiros', 'relatorios'],
@@ -114,7 +115,12 @@ function AppContent() {
     )
   }
 
-  const allowedPages = PAGE_ACCESS[profile.perfil]
+  const customPermissions = profile.permissoes?.filter((p): p is Page => p in PAGE_LABELS) ?? []
+  const allowedPages = profile.perfil === 'admin'
+    ? PAGE_ACCESS.admin
+    : customPermissions.length > 0
+      ? customPermissions
+      : PAGE_ACCESS[profile.perfil]
 
   // Se a página atual não estiver disponível para o perfil, volta ao dashboard
   const activePage: Page = allowedPages.includes(page) ? page : 'dashboard'
@@ -150,6 +156,9 @@ function AppContent() {
                 <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{perfilLabel} — AR CERTI ID</p>
               )}
             </div>
+            <span className="hidden md:inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 px-2 py-1 text-[11px] font-medium text-gray-500 dark:text-gray-400">
+              v{APP_VERSION}
+            </span>
             <button
               type="button"
               onClick={() => setDark(d => !d)}
