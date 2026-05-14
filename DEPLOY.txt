@@ -5,6 +5,9 @@
 SITE: https://certiid.mantovan.com.br
 VPS:  root@147.79.111.76
 
+MANUAL PASSO A PASSO:
+  Ver MANUAL-ATUALIZACAO.txt
+
 
 -------------------------------------
  DEPLOY MANUAL (via SSH)

@@ -1,0 +1,295 @@
+========================================
+ MANUAL DE ATUALIZACAO DO CERTIID
+========================================
+
+Objetivo:
+Atualizar o CertiID sem se perder nas etapas.
+
+Site:
+  https://certiid.mantovan.com.br
+
+Repositorio:
+  https://github.com/mantovanio/certiid
+
+GitHub Actions:
+  https://github.com/mantovanio/certiid/actions
+
+Pasta local do projeto:
+  c:\projetos\CertiID_1.0.0
+
+
+========================================
+ FLUXO NORMAL DE ATUALIZACAO
+========================================
+
+Use este fluxo quando voce alterou arquivos do projeto e quer publicar no site.
+
+1. Abra o terminal na pasta do projeto:
+
+   cd c:\projetos\CertiID_1.0.0
+
+2. Veja o que foi alterado:
+
+   git status
+
+3. Teste se o projeto compila:
+
+   npm run build
+
+   Se der erro aqui, pare e corrija antes de publicar.
+
+4. Adicione os arquivos alterados:
+
+   git add .
+
+   Atencao:
+   Se aparecer a pasta .claude/ e voce nao quiser publicar ela, use:
+
+   git add src sql .github Dockerfile docker-compose.yml nginx.conf package.json package-lock.json DEPLOY.txt DEVELOPER.md MANUAL-ATUALIZACAO.txt
+
+5. Crie o commit:
+
+   git commit -m "descreva aqui a alteracao"
+
+   Exemplos:
+
+   git commit -m "fix: corrige fluxo de liberacao de usuarios"
+   git commit -m "feat: adiciona nova tela de relatorios"
+   git commit -m "docs: atualiza manual de deploy"
+
+6. Envie para o GitHub:
+
+   git push origin main
+
+7. Acompanhe o deploy automatico:
+
+   Abra:
+   https://github.com/mantovanio/certiid/actions
+
+   Clique no workflow mais recente: Deploy CertiID.
+
+   Resultado esperado:
+   - Verde: deploy concluido com sucesso.
+   - Amarelo: ainda esta rodando.
+   - Vermelho: deu erro, abra o log e veja a mensagem.
+
+8. Depois que ficar verde, abra o site:
+
+   https://certiid.mantovan.com.br
+
+9. Se a tela ainda parecer antiga:
+
+   - Pressione Ctrl + F5 no navegador.
+   - Abra em aba anonima.
+   - Aguarde 1 ou 2 minutos e teste de novo.
+
+
+========================================
+ QUANDO TEM ALTERACAO NO BANCO SUPABASE
+========================================
+
+Use esta parte somente quando a atualizacao criou ou alterou arquivos em sql/.
+
+1. Abra o Supabase.
+
+2. Va em SQL Editor.
+
+3. Clique em New query.
+
+4. Copie o conteudo do arquivo SQL necessario.
+
+   Exemplo:
+   sql/user_approval_migration.sql
+
+5. Cole no editor do Supabase.
+
+6. Clique em Run.
+
+7. Resultado esperado:
+
+   Success. No rows returned
+
+8. Depois disso, teste o fluxo no site.
+
+
+========================================
+ COMO USAR O PORTAINER NESTE PROJETO
+========================================
+
+O Portainer serve principalmente para:
+
+- Ver se o servico esta rodando.
+- Ver logs.
+- Reiniciar/redeployar a stack.
+- Conferir rede, containers e servicos.
+
+Importante:
+Do jeito que o projeto esta hoje, o Portainer NAO substitui o git push.
+
+Motivo:
+O site React precisa passar por build. Hoje isso acontece na VPS com o script:
+
+  /opt/certiid/deploy.sh
+
+Esse script faz:
+
+  git pull origin main
+  docker build
+  docker stack rm certiid
+  docker stack deploy
+
+Se voce clicar apenas em redeploy no Portainer, mas a imagem Docker nao foi reconstruida, o site pode continuar igual.
+
+
+========================================
+ PLANO B: DEPLOY MANUAL PELA VPS
+========================================
+
+Use isto quando o GitHub Actions falhar, ou quando voce quiser forcar o deploy manualmente.
+
+1. Entre na VPS por SSH:
+
+   ssh root@147.79.111.76
+
+2. Entre na pasta do projeto:
+
+   cd /opt/certiid
+
+3. Atualize o codigo:
+
+   git pull origin main
+
+4. Rode o deploy:
+
+   bash /opt/certiid/deploy.sh
+
+5. Confira se o servico subiu:
+
+   docker service ls | grep certiid
+
+6. Veja os logs se precisar:
+
+   docker service logs certiid_certiid --tail 50
+
+
+========================================
+ PLANO B PELO PORTAINER
+========================================
+
+Use o Portainer para acompanhar ou reiniciar, mas lembre:
+ele nao faz git pull nem docker build sozinho no modelo atual.
+
+Para verificar:
+
+1. Abra o Portainer.
+
+2. Va em Stacks.
+
+3. Clique na stack:
+
+   certiid
+
+4. Veja se o servico esta ativo.
+
+5. Para logs:
+
+   Services > certiid_certiid > Logs
+
+6. Para reiniciar/redeployar:
+
+   Stacks > certiid > Update the stack
+
+Atencao:
+So clique em Update the stack se o conteudo do editor estiver correto.
+
+O compose esperado do projeto usa imagem local:
+
+  image: certiid:latest
+
+Se aparecer:
+
+  image: seu-registry/certiid:latest
+
+isso e apenas exemplo/placeholder e nao deve ser usado sem configurar um registry real.
+
+
+========================================
+ SE O GITHUB ACTIONS FALHAR
+========================================
+
+1. Abra:
+
+   https://github.com/mantovanio/certiid/actions
+
+2. Clique no workflow vermelho.
+
+3. Clique no job deploy.
+
+4. Procure a primeira linha de erro em vermelho.
+
+5. Erros comuns:
+
+   Erro:
+   ssh: unable to authenticate
+
+   Significa:
+   Problema na chave SSH do GitHub Actions.
+
+   Erro:
+   bash: /opt/certiid/deploy.sh: No such file or directory
+
+   Significa:
+   A VPS nao encontrou o script de deploy.
+
+   Erro:
+   npm run build falhou
+
+   Significa:
+   O codigo tem erro de TypeScript/build.
+
+   Erro:
+   docker stack deploy falhou
+
+   Significa:
+   Problema no Docker, compose, rede ou imagem.
+
+6. Se nao souber o que fazer:
+
+   Copie o trecho do erro e mande no chat.
+
+
+========================================
+ CHECKLIST RAPIDO
+========================================
+
+Antes de publicar:
+
+[ ] Rodei git status.
+[ ] Rodei npm run build.
+[ ] Fiz git add dos arquivos certos.
+[ ] Fiz git commit.
+[ ] Fiz git push origin main.
+[ ] Conferi o GitHub Actions.
+[ ] O workflow ficou verde.
+[ ] Testei o site.
+[ ] Rodei SQL no Supabase, se havia migration.
+
+
+========================================
+ OBSERVACAO SOBRE O FUTURO
+========================================
+
+Se voce quiser transformar o Portainer no botao principal de deploy, o projeto deve migrar para imagem publicada em registry.
+
+Fluxo futuro possivel:
+
+  GitHub Actions cria a imagem Docker
+  GitHub Actions publica em ghcr.io
+  Portainer puxa ghcr.io/mantovanio/certiid:latest
+  Voce clica em Update/Redeploy no Portainer
+
+Por enquanto, o fluxo oficial e:
+
+  git push origin main
+  GitHub Actions
+  deploy.sh na VPS
