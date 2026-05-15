@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { queueEmailMessage, queueWhatsAppMessage, renderTemplate } from '@/lib/communication'
 import type {
   AutomationRule, CommunicationTemplate, LinkProduto,
-  PrioridadeRenovacao, Renovacao, StatusRenovacao,
+  PrioridadeRenovacao, RenovacaoV2, StatusRenovacao,
 } from '@/types'
 
 // ── constants ─────────────────────────────────────────────────
@@ -53,7 +53,7 @@ const TEMPLATE_VARS = [
   { key: '{{link_nova_emissao}}',label: 'Link Nova Emissão'},
 ]
 
-const CSV_FIELDS: { key: keyof Renovacao | 'produto'; label: string }[] = [
+const CSV_FIELDS: { key: keyof RenovacaoV2 | 'produto'; label: string }[] = [
   { key: 'pedido',           label: 'Pedido'                       },
   { key: 'protocolo',        label: 'Protocolo'                    },
   { key: 'data_vencimento',  label: 'Data Vencimento (YYYY-MM-DD)' },
@@ -119,7 +119,7 @@ function fmtCurrency(v: number | null) {
 export default function Renovacoes() {
 
   // ── list state ──────────────────────────────────────────────
-  const [lista, setLista]           = useState<Renovacao[]>([])
+  const [lista, setLista]           = useState<RenovacaoV2[]>([])
   const [loading, setLoading]       = useState(true)
   const [error, setError]           = useState<string | null>(null)
   const [filtro, setFiltro]         = useState<PrioridadeRenovacao | 'todos'>('todos')
@@ -166,7 +166,7 @@ export default function Renovacoes() {
   // ── auto-kanban via realtime ──────────────────────────────────
   const [autoKanban, setAutoKanban]       = useState(false)
   const [n8nWebhookUrl, setN8nWebhookUrl] = useState<string | null>(null)
-  const listaRef                          = useRef<Renovacao[]>([])
+  const listaRef                          = useRef<RenovacaoV2[]>([])
   const autoKanbanRef                     = useRef(false)
 
   // ── toast ────────────────────────────────────────────────────
@@ -181,10 +181,10 @@ export default function Renovacoes() {
   const fetchRenovacoes = useCallback(async () => {
     setLoading(true)
     const { data, error: err } = await supabase
-      .from('renovacoes').select('*').order('data_vencimento', { ascending: true })
+      .from('renovacoes').select('*').is('deleted_at', null).order('data_vencimento', { ascending: true })
     if (err) { setError(err.message); setLoading(false); return }
     const hoje = new Date(); hoje.setHours(0, 0, 0, 0)
-    const enriched: Renovacao[] = ((data ?? []) as Record<string, unknown>[]).map(r => {
+    const enriched: RenovacaoV2[] = ((data ?? []) as Record<string, unknown>[]).map(r => {
       const venc = new Date(r.data_vencimento as string); venc.setHours(0, 0, 0, 0)
       const dias = Math.round((venc.getTime() - hoje.getTime()) / 86400000)
       return {
@@ -209,6 +209,19 @@ export default function Renovacoes() {
         ultimo_lembrete: (r.ultimo_lembrete as string | null) ?? null,
         dias_restantes: dias,
         prioridade: dias <= 7 ? 'urgente' : dias <= 15 ? 'media' : 'normal',
+        // campos v2
+        venda_certificado_id:   (r.venda_certificado_id as string | null)   ?? null,
+        produto_emitido_id:     (r.produto_emitido_id as string | null)     ?? null,
+        cadastro_base_id:       (r.cadastro_base_id as string | null)       ?? null,
+        empresa_id:             (r.empresa_id as string | null)             ?? null,
+        titular_id:             (r.titular_id as string | null)             ?? null,
+        vendedor_fk_id:         (r.vendedor_fk_id as string | null)         ?? null,
+        agente_registro_fk_id:  (r.agente_registro_fk_id as string | null)  ?? null,
+        contador_fk_id:         (r.contador_fk_id as string | null)         ?? null,
+        snapshot_json:          (r.snapshot_json as Record<string, unknown>) ?? {},
+        deleted_at:             (r.deleted_at as string | null)             ?? null,
+        deleted_by:             (r.deleted_by as string | null)             ?? null,
+        motivo_exclusao:        (r.motivo_exclusao as string | null)        ?? null,
       }
     })
     setLista(enriched)
@@ -291,7 +304,7 @@ export default function Renovacoes() {
 
   // ── template values (for rendering) ─────────────────────────
 
-  function tplValues(r: Renovacao): Record<string, string | number> {
+  function tplValues(r: RenovacaoV2): Record<string, string | number> {
     const linkData = linksMap.get(r.tipo_certificado)
     return {
       cliente:           r.razao_social ?? r.cliente,
@@ -320,7 +333,7 @@ export default function Renovacoes() {
 
   // ── individual send ──────────────────────────────────────────
 
-  async function criarLeadKanban(r: Renovacao) {
+  async function criarLeadKanban(r: RenovacaoV2) {
     const anotacoes = [
       r.cpf       && `CPF: ${r.cpf}`,
       r.cnpj      && `CNPJ: ${r.cnpj}`,
@@ -347,7 +360,7 @@ export default function Renovacoes() {
     setLista(prev => prev.map(r => r.id === id ? { ...r, status } : r))
   }
 
-  async function marcarRenovado(r: Renovacao) {
+  async function marcarRenovado(r: RenovacaoV2) {
     const s: StatusRenovacao = r.status === 'convertido' ? 'pendente' : 'convertido'
     setUpdatingId(r.id)
     await supabase.from('renovacoes').update({ status: s, renovado: s === 'convertido' }).eq('id', r.id)
@@ -356,7 +369,7 @@ export default function Renovacoes() {
     showMsg(s === 'convertido' ? 'Marcado como Renovado!' : 'Marcação removida.')
   }
 
-  async function marcarNaoRenovado(r: Renovacao) {
+  async function marcarNaoRenovado(r: RenovacaoV2) {
     const s: StatusRenovacao = r.status === 'perdido' ? 'pendente' : 'perdido'
     setUpdatingId(r.id)
     await supabase.from('renovacoes').update({ status: s }).eq('id', r.id)
@@ -365,7 +378,7 @@ export default function Renovacoes() {
     showMsg(s === 'perdido' ? 'Marcado como Não Renovado.' : 'Marcação removida.')
   }
 
-  async function enviarWhatsApp(r: Renovacao) {
+  async function enviarWhatsApp(r: RenovacaoV2) {
     if (!r.telefone) { showMsg('Cliente sem telefone.', 'err'); return }
     setSendingId(r.id)
     const tpl = getActiveTpl('whatsapp')
@@ -379,7 +392,7 @@ export default function Renovacoes() {
     setSendingId(null)
   }
 
-  async function enviarEmail(r: Renovacao) {
+  async function enviarEmail(r: RenovacaoV2) {
     if (!r.email) { showMsg('Cliente sem e-mail.', 'err'); return }
     setSendingId(r.id)
     const tpl     = getActiveTpl('email')

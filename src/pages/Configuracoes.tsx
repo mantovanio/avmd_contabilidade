@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Loader2, Pencil, X, Check, KeyRound, UserPlus, Eye, EyeOff, MessageCircle, Mail, Webhook, Save, Send, Trash2, Plus } from 'lucide-react'
+import { Loader2, MapPin, Pencil, X, Check, KeyRound, UserPlus, Eye, EyeOff, MessageCircle, Mail, Webhook, Save, Send, Trash2, Plus, ToggleLeft, ToggleRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { supabaseAdmin } from '@/lib/supabaseAdmin'
@@ -14,17 +14,20 @@ import type {
   Parceiro,
   PerfilAcesso,
   PermissaoPagina,
+  PontoAtendimento,
+  NovoPontoAtendimento,
   Profile,
   TipoVinculoUsuario,
 } from '@/types'
 
-type Tab = 'geral' | 'integracoes' | 'automacoes' | 'usuarios'
+type Tab = 'geral' | 'integracoes' | 'automacoes' | 'usuarios' | 'pontos'
 
 const TABS: { id: Tab; label: string }[] = [
-  { id: 'geral',        label: 'Geral'        },
-  { id: 'integracoes',  label: 'Integrações'  },
-  { id: 'automacoes',   label: 'Automações'   },
-  { id: 'usuarios',     label: 'Usuários'     },
+  { id: 'geral',        label: 'Geral'                  },
+  { id: 'integracoes',  label: 'Integrações'            },
+  { id: 'automacoes',   label: 'Automações'             },
+  { id: 'usuarios',     label: 'Usuários'               },
+  { id: 'pontos',       label: 'Pontos de Atendimento'  },
 ]
 
 const PERFIL_LABEL: Record<PerfilAcesso, string> = {
@@ -1474,6 +1477,218 @@ function SummaryChip({ label, value, tone }: { label: string; value: number; ton
   )
 }
 
+// ── Aba Pontos de Atendimento ─────────────────────────────────
+
+const EMPTY_PONTO: NovoPontoAtendimento = {
+  codigo: null, nome: '', endereco: null,
+  cidade: null, uf: null, status: 'ativo', metadata: {},
+}
+
+function AbaPontos() {
+  const { profile } = useAuth()
+  const isAdmin = profile?.perfil === 'admin'
+  const [pontos, setPontos]     = useState<PontoAtendimento[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [erro, setErro]         = useState<string | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm]         = useState<NovoPontoAtendimento>(EMPTY_PONTO)
+  const [saving, setSaving]     = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setErro(null)
+    const { data, error } = await supabase
+      .from('pontos_atendimento').select('*').order('nome', { ascending: true })
+    if (error) { setErro(error.message); setLoading(false); return }
+    setPontos((data ?? []) as PontoAtendimento[])
+    setLoading(false)
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  function abrirNovo() {
+    setEditingId(null)
+    setForm({ ...EMPTY_PONTO })
+    setShowForm(true)
+  }
+
+  function abrirEditar(p: PontoAtendimento) {
+    setEditingId(p.id)
+    setForm({ codigo: p.codigo, nome: p.nome, endereco: p.endereco, cidade: p.cidade, uf: p.uf, status: p.status, metadata: p.metadata })
+    setShowForm(true)
+  }
+
+  async function salvar() {
+    if (!form.nome.trim()) return
+    setSaving(true)
+    const payload = { ...form, nome: form.nome.trim(), codigo: form.codigo?.trim() || null, endereco: form.endereco?.trim() || null, cidade: form.cidade?.trim() || null, uf: form.uf?.trim() || null }
+    const { error } = editingId
+      ? await supabase.from('pontos_atendimento').update(payload).eq('id', editingId)
+      : await supabase.from('pontos_atendimento').insert([payload])
+    setSaving(false)
+    if (error) { alert('Erro: ' + error.message); return }
+    setShowForm(false)
+    setEditingId(null)
+    setForm({ ...EMPTY_PONTO })
+    void load()
+  }
+
+  async function toggleStatus(p: PontoAtendimento) {
+    setTogglingId(p.id)
+    const novoStatus = p.status === 'ativo' ? 'inativo' : 'ativo'
+    setPontos(prev => prev.map(x => x.id === p.id ? { ...x, status: novoStatus } : x))
+    const { error } = await supabase.from('pontos_atendimento').update({ status: novoStatus }).eq('id', p.id)
+    setTogglingId(null)
+    if (error) {
+      setPontos(prev => prev.map(x => x.id === p.id ? { ...x, status: p.status } : x))
+      alert('Erro: ' + error.message)
+    }
+  }
+
+  if (loading) return <div className="flex items-center justify-center py-16"><Loader2 size={24} className="animate-spin text-gray-400" /></div>
+
+  if (erro) return (
+    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-lg p-4 text-sm">
+      Erro ao carregar pontos de atendimento: {erro}. Verifique se a migration V2 foi aplicada.
+    </div>
+  )
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200">Pontos de Atendimento</h2>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Locais de emissão de certificados. Obrigatório para lançar vendas.</p>
+        </div>
+        {isAdmin && (
+          <button type="button" onClick={abrirNovo}
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
+            <Plus size={13} /> Novo Ponto
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+              {editingId ? 'Editar Ponto' : 'Novo Ponto de Atendimento'}
+            </h3>
+            <button type="button" title="Fechar" onClick={() => setShowForm(false)}><X size={16} className="text-gray-400" /></button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500">Código</span>
+              <input type="text" value={form.codigo ?? ''} onChange={e => setForm(p => ({ ...p, codigo: e.target.value || null }))}
+                placeholder="ex: PA-001"
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-2">
+              <span className="text-xs text-gray-500">Nome *</span>
+              <input type="text" value={form.nome} onChange={e => setForm(p => ({ ...p, nome: e.target.value }))}
+                placeholder="ex: Balcão Principal"
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex flex-col gap-1 md:col-span-3">
+              <span className="text-xs text-gray-500">Endereço</span>
+              <input type="text" title="Endereço" placeholder="Rua, número, bairro" value={form.endereco ?? ''} onChange={e => setForm(p => ({ ...p, endereco: e.target.value || null }))}
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500">Cidade</span>
+              <input type="text" title="Cidade" placeholder="ex: São Paulo" value={form.cidade ?? ''} onChange={e => setForm(p => ({ ...p, cidade: e.target.value || null }))}
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500">UF</span>
+              <input type="text" maxLength={2} value={form.uf ?? ''} onChange={e => setForm(p => ({ ...p, uf: e.target.value.toUpperCase() || null }))}
+                placeholder="SP"
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-gray-500">Status</span>
+              <select title="Status do ponto de atendimento" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value as 'ativo' | 'inativo' }))}
+                className="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <option value="ativo">Ativo</option>
+                <option value="inativo">Inativo</option>
+              </select>
+            </div>
+          </div>
+          <div className="flex gap-2 mt-4">
+            <button type="button" onClick={() => void salvar()} disabled={saving || !form.nome.trim()}
+              className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50">
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              {saving ? 'Salvando…' : 'Salvar'}
+            </button>
+            <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {pontos.length === 0 && !showForm ? (
+        <div className="flex flex-col items-center justify-center py-12 text-gray-400 bg-white dark:bg-gray-900 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+          <MapPin size={32} className="mb-2 opacity-40" />
+          <p className="font-medium text-sm">Nenhum ponto cadastrado</p>
+          <p className="text-xs mt-1">Crie ao menos um para poder lançar vendas.</p>
+        </div>
+      ) : (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide text-left">
+                {['Código', 'Nome', 'Localização', 'Status', 'Ações'].map(h => (
+                  <th key={h} className="px-4 py-3">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+              {pontos.map(p => (
+                <tr key={p.id} className={cn('hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors', p.status === 'inativo' && 'opacity-50')}>
+                  <td className="px-4 py-3 text-gray-400 font-mono text-xs">{p.codigo ?? '—'}</td>
+                  <td className="px-4 py-3 font-medium flex items-center gap-2">
+                    <MapPin size={13} className="text-blue-400 shrink-0" />
+                    {p.nome}
+                  </td>
+                  <td className="px-4 py-3 text-gray-500">
+                    {[p.cidade, p.uf].filter(Boolean).join(' — ') || (p.endereco ?? '—')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium',
+                      p.status === 'ativo'
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                        : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400')}>
+                      {p.status === 'ativo' ? 'Ativo' : 'Inativo'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1">
+                      {isAdmin && (
+                        <>
+                          <button type="button" title="Editar" onClick={() => abrirEditar(p)}
+                            className="w-8 h-8 rounded-lg text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 flex items-center justify-center transition-colors">
+                            <Pencil size={14} />
+                          </button>
+                          <button type="button" title={p.status === 'ativo' ? 'Desativar' : 'Ativar'} onClick={() => void toggleStatus(p)} disabled={togglingId === p.id}
+                            className={cn('w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                              p.status === 'ativo' ? 'text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800')}>
+                            {togglingId === p.id ? <Loader2 size={16} className="animate-spin" /> : p.status === 'ativo' ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function Configuracoes() {
   const [tab, setTab] = useState<Tab>('geral')
 
@@ -1506,6 +1721,9 @@ export default function Configuracoes() {
 
         {/* USUÁRIOS */}
         {tab === 'usuarios' && <AbaUsuarios />}
+
+        {/* PONTOS DE ATENDIMENTO */}
+        {tab === 'pontos' && <AbaPontos />}
 
       </div>
     </div>

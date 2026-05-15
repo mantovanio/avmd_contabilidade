@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { PlusCircle, TrendingUp, TrendingDown, DollarSign, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import type { Lancamento, ContaBancaria, NovoLancamento, TipoLancamento, StatusLancamento } from '@/types'
+import type { LancamentoV2, ContaBancaria, NovoLancamento, TipoLancamento, StatusLancamento } from '@/types'
 
 type Tab = 'pagarReceber' | 'contas' | 'centros' | 'split' | 'fiscal'
 
@@ -31,7 +31,7 @@ const MOCK_CENTROS = [
 
 export default function Financeiro() {
   const [tab, setTab]           = useState<Tab>('pagarReceber')
-  const [lancs, setLancs]       = useState<Lancamento[]>([])
+  const [lancs, setLancs]       = useState<LancamentoV2[]>([])
   const [contas, setContas]     = useState<ContaBancaria[]>([])
   const [loading, setLoading]   = useState(true)
   const [error, setError]       = useState<string | null>(null)
@@ -47,7 +47,7 @@ export default function Financeiro() {
       supabase.from('contas_bancarias').select('*').eq('ativo', true).order('banco'),
     ])
     if (e1 ?? e2) { setError((e1 ?? e2)!.message); setLoading(false); return }
-    setLancs(l as Lancamento[])
+    setLancs(l as LancamentoV2[])
     setContas(c as ContaBancaria[])
     setLoading(false)
   }, [])

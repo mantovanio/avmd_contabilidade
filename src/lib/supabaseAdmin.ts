@@ -1,9 +1,15 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = 'https://cvfrhfiaprdtwxxplngk.supabase.co'
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN2ZnJoZmlhcHJkdHd4eHBsbmdrIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDYzODc4NywiZXhwIjoyMDkwMjE0Nzg3fQ.4vem_8CmJ9adeLm05Y9bY9Ef20cna7RXThagNgX_gj4'
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
+const serviceRoleKey = import.meta.env.VITE_SUPABASE_SERVICE_ROLE_KEY as string
 
-// Cliente com service_role — bypassa RLS e permite gerenciar usuários (admin only)
+if (!serviceRoleKey) {
+  throw new Error('VITE_SUPABASE_SERVICE_ROLE_KEY não definida no .env')
+}
+
+// ATENÇÃO: este cliente bypassa o RLS — use somente em operações administrativas
+// que não podem ser feitas pelo cliente anon. Nunca exponha chamadas deste cliente
+// em rotas acessíveis ao usuário final sem validação de perfil admin no servidor.
 export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 })

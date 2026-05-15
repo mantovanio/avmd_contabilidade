@@ -352,3 +352,534 @@ export interface DateRange {
   from: Date
   to: Date
 }
+
+// ══════════════════════════════════════════════════════════════
+// V2 — estrutura relacional
+// ══════════════════════════════════════════════════════════════
+
+// ── cadastros_base ────────────────────────────────────────────
+export type TipoCadastroCadastroBase = 'cliente' | 'fornecedor' | 'cliente_fornecedor'
+
+export interface CadastroBase {
+  id: string
+  tipo_cliente: TipoCliente
+  tipo_cadastro: TipoCadastroCadastroBase
+  cpf_cnpj: string
+  nome: string
+  nome_fantasia: string | null
+  email: string | null
+  telefone: string | null
+  cidade: string | null
+  logradouro: string | null
+  numero: string | null
+  complemento: string | null
+  bairro: string | null
+  uf: string | null
+  cep: string | null
+  inscricao_municipal: string | null
+  inscricao_estadual: string | null
+  iss_retido: boolean
+  status: 'ativo' | 'inativo'
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovoCadastroBase = Omit<CadastroBase, 'id' | 'created_at' | 'updated_at'>
+
+// ── empresas_cliente ──────────────────────────────────────────
+export interface EmpresaCliente {
+  id: string
+  cadastro_base_id: string
+  cnpj: string | null
+  razao_social: string
+  nome_fantasia: string | null
+  email: string | null
+  telefone: string | null
+  cidade: string | null
+  status: 'ativo' | 'inativo'
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovaEmpresaCliente = Omit<EmpresaCliente, 'id' | 'created_at' | 'updated_at'>
+
+// ── titulares_certificado ─────────────────────────────────────
+export interface TitularCertificado {
+  id: string
+  nome: string
+  cpf: string
+  data_nascimento: string | null
+  email: string | null
+  telefone: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovoTitularCertificado = Omit<TitularCertificado, 'id' | 'created_at' | 'updated_at'>
+
+// ── pontos_atendimento ────────────────────────────────────────
+export interface PontoAtendimento {
+  id: string
+  codigo: string | null
+  nome: string
+  endereco: string | null
+  cidade: string | null
+  uf: string | null
+  status: 'ativo' | 'inativo'
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovoPontoAtendimento = Omit<PontoAtendimento, 'id' | 'created_at' | 'updated_at'>
+
+export interface PontoAtendimentoAgente {
+  id: string
+  ponto_atendimento_id: string
+  agente_id: string
+  principal: boolean
+  created_at: string
+}
+
+// ── vendas_certificados ───────────────────────────────────────
+export type StatusVendaCertificado = 'rascunho' | 'vendido' | 'agendado' | 'em_validacao' | 'emitido' | 'cancelado'
+export type StatusPedidoProtocolo  = 'nao_gerado' | 'pendente' | 'gerado' | 'erro' | 'cancelado'
+export type TipoComissao           = 'fixa' | 'percentual'
+export type TipoParceiro = 'ar' | 'pa_controle_total' | 'pa_emissor' | 'contador' | 'vendedor' | 'gestor' | 'ecommerce'
+
+export interface VendaCertificado {
+  id: string
+  cadastro_base_id: string
+  empresa_id: string | null
+  titular_id: string
+  certificado_id: string | null
+  tipo_produto: string
+  tipo_venda: string | null
+  tipo_emissao: string | null
+  tabela_preco: string | null
+  forma_pagamento_id: string | null
+  valor_venda: number | null
+  valor_custo: number | null
+  // snapshot de faturamento
+  documento_faturamento: string | null
+  nome_faturamento: string | null
+  email_faturamento: string | null
+  telefone_faturamento: string | null
+  logradouro: string | null
+  numero: string | null
+  complemento: string | null
+  bairro: string | null
+  cidade: string | null
+  uf: string | null
+  cep: string | null
+  inscricao_municipal: string | null
+  inscricao_estadual: string | null
+  iss_retido: boolean
+  // responsáveis
+  vendedor_id: string
+  agente_registro_id: string | null
+  contador_id: string | null
+  ponto_atendimento_id: string
+  // pedido / protocolo
+  pedido_numero: string | null
+  pedido_status: StatusPedidoProtocolo
+  protocolo_numero: string | null
+  protocolo_status: StatusPedidoProtocolo
+  certificadora: string | null
+  api_payload_pedido: Record<string, unknown>
+  api_payload_protocolo: Record<string, unknown>
+  // comissão snapshot
+  comissao_vendedor_tipo: TipoComissao | null
+  comissao_vendedor_valor: number | null
+  comissao_agente_tipo: TipoComissao | null
+  comissao_agente_valor: number | null
+  status_venda: StatusVendaCertificado
+  observacoes: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovaVendaCertificado = Omit<VendaCertificado, 'id' | 'created_at' | 'updated_at'>
+
+// ── agendamentos_validacao ────────────────────────────────────
+export type StatusAgendamentoValidacao = 'pendente' | 'confirmado' | 'realizado' | 'cancelado'
+export type TipoAtendimento = 'presencial' | 'videoconferencia' | 'auto_atendimento'
+
+export interface AgendamentoValidacao {
+  id: string
+  venda_certificado_id: string
+  cadastro_base_id: string
+  empresa_id: string | null
+  titular_id: string
+  contador_id: string | null
+  agente_registro_id: string
+  ponto_atendimento_id: string
+  data_agendada: string | null
+  tipo_atendimento: TipoAtendimento | null
+  status_agendamento: StatusAgendamentoValidacao
+  observacoes: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovoAgendamentoValidacao = Omit<AgendamentoValidacao, 'id' | 'created_at' | 'updated_at'>
+
+// ── produtos_emitidos ─────────────────────────────────────────
+export type StatusCertificadoEmitido = 'ativo' | 'expirado' | 'revogado' | 'cancelado'
+
+export interface ProdutoEmitido {
+  id: string
+  venda_certificado_id: string
+  cadastro_base_id: string
+  empresa_id: string | null
+  titular_id: string
+  certificado_id: string | null
+  pedido_numero: string | null
+  protocolo_numero: string | null
+  numero_serie: string | null
+  descricao_produto: string | null
+  descricao_produto_midia: string | null
+  validade: string | null
+  data_emissao: string | null
+  data_validade: string | null
+  status_certificado: StatusCertificadoEmitido
+  data_revogacao: string | null
+  revogado_por: string | null
+  codigo_revogacao: string | null
+  descricao_revogacao: string | null
+  aci_data: string | null
+  aci_data_limite: string | null
+  inicio_videoconferencia: string | null
+  inicio_gravacao: string | null
+  fim_gravacao: string | null
+  latitude_emissao: number | null
+  longitude_emissao: number | null
+  latitude_local: number | null
+  longitude_local: number | null
+  nome_equipamento: string | null
+  dna_equipamento: string | null
+  verificacao: string | null
+  endereco_validacao_externa: string | null
+  tipo_emissao_realizada: string | null
+  tipo_emissao_solicitada: string | null
+  periodo_uso: string | null
+  modelo: string | null
+  grupo: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+// ── documentos_financeiros ────────────────────────────────────
+export type TipoDocumentoFinanceiro =
+  | 'nota_fiscal' | 'comprovante_pagamento' | 'contrato'
+  | 'documento_pessoal' | 'documento_empresa' | 'outro'
+
+export interface DocumentoFinanceiro {
+  id: string
+  lancamento_financeiro_id: string | null
+  cadastro_base_id: string | null
+  empresa_id: string | null
+  titular_id: string | null
+  venda_certificado_id: string | null
+  produto_emitido_id: string | null
+  tipo_documento: TipoDocumentoFinanceiro
+  bucket: string
+  storage_path: string
+  nome_original: string
+  mime_type: string | null
+  tamanho_bytes: number | null
+  hash_arquivo: string | null
+  sensivel: boolean
+  metadata: Record<string, unknown>
+  created_by: string | null
+  created_at: string
+  deleted_at: string | null
+}
+
+// ── bancos ────────────────────────────────────────────────────
+export interface Banco {
+  id: string
+  codigo: string
+  nome: string
+  ispb: string | null
+  ativo: boolean
+  origem: string
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+// ── contas_bancarias_v2 ───────────────────────────────────────
+export type TipoContaBancaria = 'corrente' | 'poupanca' | 'pagamento' | 'outro'
+
+export interface ContaBancariaV2 {
+  id: string
+  banco_id: string
+  tipo_conta: TipoContaBancaria
+  agencia: string | null
+  conta: string | null
+  digito: string | null
+  titular_cadastro_base_id: string | null
+  cnpj_cpf_titular: string | null
+  nome_titular: string | null
+  data_abertura: string | null
+  saldo_inicial: number
+  ativa: boolean
+  gateway: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovaContaBancariaV2 = Omit<ContaBancariaV2, 'id' | 'created_at' | 'updated_at'>
+
+// ── formas_pagamento_v2 ───────────────────────────────────────
+export interface FormaPagamentoV2 {
+  id: string
+  nome: string
+  codigo: string | null
+  tipo: string | null
+  gateway: string | null
+  ativo: boolean
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface FormaPagamentoDisponibilidade {
+  id: string
+  forma_pagamento_id: string
+  tipo_parceiro: TipoParceiro
+  permitido: boolean
+  ordem: number
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+// ── planos_contas ─────────────────────────────────────────────
+export type TipoContaPlano = 'receita' | 'despesa' | 'ativo' | 'passivo' | 'patrimonio'
+
+export interface PlanoContas {
+  id: string
+  tipo_conta: TipoContaPlano
+  agrupador: string | null
+  conta_lancamento: string
+  codigo_reduzido: string | null
+  ativa: boolean
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovoPlanoContas = Omit<PlanoContas, 'id' | 'created_at' | 'updated_at'>
+
+// ── centros_custos ────────────────────────────────────────────
+export interface CentroCusto {
+  id: string
+  nome: string
+  codigo: string | null
+  ativo: boolean
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type NovoCentroCusto = Omit<CentroCusto, 'id' | 'created_at' | 'updated_at'>
+
+// ── regras_comissao ───────────────────────────────────────────
+export interface RegraComissao {
+  id: string
+  escopo: string
+  perfil_destino: string
+  tipo_calculo: TipoComissao
+  valor: number
+  vigencia_inicio: string | null
+  vigencia_fim: string | null
+  ativo: boolean
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+// ── comissoes_lancamentos ─────────────────────────────────────
+export type PapelComissao = 'vendedor' | 'parceiro' | 'agente_registro'
+export type StatusComissao = 'pendente' | 'aprovada' | 'paga' | 'cancelada'
+
+export interface ComissaoLancamento {
+  id: string
+  venda_certificado_id: string | null
+  produto_emitido_id: string | null
+  usuario_id: string
+  papel: PapelComissao
+  base_valor: number
+  percentual: number | null
+  valor_comissao: number
+  competencia: string
+  status: StatusComissao
+  origem: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+// ── fechamentos_agentes ───────────────────────────────────────
+export type StatusFechamento = 'aberto' | 'fechado' | 'processando_pagamento' | 'concluido' | 'cancelado'
+export type StatusPagamentoAgente = 'pendente' | 'selecionado' | 'enviado' | 'pago' | 'erro' | 'cancelado'
+
+export interface FechamentoAgenteLote {
+  id: string
+  competencia: string
+  status_fechamento: StatusFechamento
+  observacoes: string | null
+  gerado_por: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface FechamentoAgenteItem {
+  id: string
+  lote_fechamento_id: string
+  agente_id: string
+  cpf_agente: string | null
+  nome_agente: string
+  valor_bruto: number
+  valor_fgts: number
+  valor_inss: number
+  valor_ir: number
+  valor_outras_retencoes: number
+  valor_liquido: number
+  status_pagamento: StatusPagamentoAgente
+  data_pagamento: string | null
+  conta_bancaria_destino_id: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface FechamentoAgenteItemComissao {
+  id: string
+  fechamento_item_id: string
+  comissao_lancamento_id: string
+  created_at: string
+}
+
+// ── ordens_pagamento ──────────────────────────────────────────
+export type StatusOrdemPagamento = 'pendente' | 'enviado' | 'processando' | 'pago' | 'erro' | 'cancelado'
+
+export interface OrdemPagamento {
+  id: string
+  fechamento_item_id: string
+  provider: string
+  conta_origem_id: string | null
+  conta_destino_id: string | null
+  favorecido_nome: string
+  favorecido_documento: string | null
+  favorecido_chave_pix: string | null
+  favorecido_banco: string | null
+  favorecido_agencia: string | null
+  favorecido_conta: string | null
+  valor_pagamento: number
+  status_integracao: StatusOrdemPagamento
+  external_payment_id: string | null
+  payload_envio: Record<string, unknown>
+  payload_retorno: Record<string, unknown>
+  erro_integracao: string | null
+  solicitado_por: string | null
+  processado_em: string | null
+  created_at: string
+  updated_at: string
+}
+
+// ── nfse ──────────────────────────────────────────────────────
+export type AmbienteNfse = 'homologacao' | 'producao'
+export type StatusNfse   = 'pendente' | 'emitida' | 'erro' | 'cancelada'
+
+export interface NfseConfiguracao {
+  id: string
+  cadastro_base_emitente_id: string | null
+  cnpj_emitente: string
+  inscricao_municipal: string | null
+  inscricao_estadual: string | null
+  cnae: string | null
+  ambiente: AmbienteNfse
+  natureza_operacao: string | null
+  simples_nacional: boolean
+  regime_especial: string | null
+  exigibilidade_iss: string | null
+  incentivo_fiscal: boolean
+  tipo_rps: string | null
+  serie_rps: string | null
+  numero_rps_atual: number
+  codigo_servico_municipio: string | null
+  codigo_tributacao_municipio: string | null
+  codigo_cfps: string | null
+  codigo_cst: string | null
+  aliquota_iss: number | null
+  aliquota_pis: number | null
+  aliquota_cofins: number | null
+  aliquota_inss: number | null
+  aliquota_ir: number | null
+  aliquota_csll: number | null
+  robo_ligado: boolean
+  payload_reforma_tributaria: Record<string, unknown>
+  updated_by: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface NfseEmitida {
+  id: string
+  lancamento_financeiro_id: string | null
+  cadastro_base_tomador_id: string | null
+  venda_certificado_id: string | null
+  numero_nf: string | null
+  codigo_verificacao: string | null
+  status_nf: StatusNfse
+  data_emissao: string | null
+  valor_servico: number | null
+  valor_iss: number | null
+  xml_url: string | null
+  pdf_url: string | null
+  payload_envio: Record<string, unknown>
+  payload_retorno: Record<string, unknown>
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+// ── extensões v2 em tabelas legadas ───────────────────────────
+export interface RenovacaoV2Campos {
+  venda_certificado_id: string | null
+  produto_emitido_id: string | null
+  cadastro_base_id: string | null
+  empresa_id: string | null
+  titular_id: string | null
+  vendedor_fk_id: string | null
+  agente_registro_fk_id: string | null
+  contador_fk_id: string | null
+  snapshot_json: Record<string, unknown>
+  deleted_at: string | null
+  deleted_by: string | null
+  motivo_exclusao: string | null
+}
+
+export type RenovacaoV2 = Renovacao & RenovacaoV2Campos
+
+export interface LancamentoV2Campos {
+  conta_bancaria_v2_id: string | null
+  plano_conta_id: string | null
+  centro_custo_id: string | null
+  cadastro_base_id: string | null
+  venda_certificado_id: string | null
+  produto_emitido_id: string | null
+  documento_fiscal_id: string | null
+}
+
+export type LancamentoV2 = Lancamento & LancamentoV2Campos
